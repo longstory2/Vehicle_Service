@@ -186,6 +186,13 @@ Dưới đâu là các yêu cầu chi tiết của hệ thống, được mô t�
 
 ## 4 Yêu cầu phi chức năng (Non-functional Requirements)
 Một số yêu cầu quan trọng khác về chất lương:
-    * **Hiệu năng**
-        * Hệ thống phản phản hồi trong vòng 2 giây đối với các thao tác người dùng đăng nhập, tạo đơn, tải trang trong điều kiện bình thường
+* **Hiệu năng**
+    * Hệ thống phản phản hồi trong vòng 2 giây đối với các thao tác người dùng đăng nhập, tạo đơn, tải trang trong điều kiện bình thường
+* **Khả dụng (Usability):**
+    * GIao diện trực quan và dễ sử dụng
+    * các thông báo lỗi hoặc thành công phải rõ ràng
+* **Bảo mật**
+    * Mật khẩu của người dùng phải được mã hóa trước khi lưu trữ trong cơ sở dữ liệu.
 
+---
+## 6. Sơ đồ Use Case (Use Case Diagram)
