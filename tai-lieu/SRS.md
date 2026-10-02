@@ -19,5 +19,15 @@
 ---
 
 ### 1.Mô tả đề tài
-* **Đăng ký tài khoản:**
-Nền tảng ** Sửa chữa, chăm sóc xe tại nhà ** 
+
+## 1.1 giới thiệu đề tài 
+
+Nền tảng ** Sửa chữa, chăm sóc xe tại nhà ** là nền tảng kết nối dịch vụ chăm sóc, sửa chữa xe tại nhà, nhằm cung cấp hướng dẫn rõ ràng cho quá trình phát triển, kiểm thử và triển khai.
+
+## 1.2 Phạm vi đề tài
+
+* **Nền tảng bao gồm ứng dụng chính**
+
+* **Ứng dụng khách hàng (customer):** Ứng dụng cho chủ xe ôtô/xe máy
+* **Ứng dụng kỹ thuật viên (Technician)** Ứng dụng cho kỹ thuật viên nhận việc
+* **Trang web admin (doanh nghiệp)** Trang dành cho doanh nghiệp quản lý hoạt dộng
