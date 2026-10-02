@@ -4,7 +4,7 @@
 
 **Sinh viên 1:** Nguyễn Phạm Quỳnh Long - MSSV: 2174802010089
 
-**Sinh viên 2:** Ngô Minh Hưởng - MSSV:
+**Sinh viên 2:** Ngô Minh Hưởng - MSSV: 2274802010355
 
 **Giảng viên hướng dẫn:** Nguyễn Trí Hải
 
@@ -79,4 +79,50 @@ Dưới đâu là các yêu cầu chi tiết của hệ thống, được mô t�
     * Ghi nhớ đăng nhập tùy chọn
     * Khôi phục mật khẩu qua email/SĐT
 
+### 3.3 Quản lý hồ sơ
+* **ID:FR-004: Xem và chỉnh sửa hồ sơ cá nhân**
+    * **Mô tả:** Là một người dùng, tôi muốn xem thông tin của mình để có thể chỉnh sửa thông tin cá nhân
+* **Yêu cầu**
+    * Có tài khoản trên hê thống
+    * Xem thông tin hồ sơ (tên, SĐT, Email, địa chỉ, loại xe, biển số xe)
+    * Lịch sử hoạt động
 
+### 3.4 Quản lý đơn hàng (Booking)
+* **ID:FR-005: Tạo đơn hàng**
+    * **Mô tả:** Là một người dùng tôi muốn đặt một đơn dịch vụ để có thể sửa chữa, chăm sóc xe của mình.
+* **Yêu cầu**
+    * Chọn loại dịch vụ (Thay nhớt, Thay vỏ bánh xe, Thay pin xe ôtô, Kiểm tra,...)
+    * Chọn loại xe
+    * Nhập thông tin xe
+    * Chọn địa điểm
+    * Mô tả sự cố (nếu chọn kiểm tra)
+    * Thêm ảnh hư hỏng (tùy chọn)
+    * Niên yết giá dự kiến
+
+* **ID:FR-006: Xem và quản lý đơn hàng**
+    * **Mô tả:** Là một người dùng tôi muốn xem đơn hàng để tôi dễ dàng quản lý
+* **Yêu cầu**
+    * Danh sách các đơn đã đặt (đang thực hiện, hoành thành, hủy)
+    * chi tiết đơn hàng
+    * Huye đơn nếu chưa có kỹ thuật viên
+    * Lịch sử đơn hàng
+### 3.5 Thuật toán ghép cặp (Matching)
+* **ID:FR-007: Thuật toán ghép cặp (Matching)** 
+    * **Mô tả:** Là một người dùng, tôi muốn tìm một kỹ thuật viên để sửa xe có tay nghề phù hợp
+* **Yêu cầu**
+    * Tìm kỹ thuật viên trong bán kím 15km từ vị trí khách hàng
+    Ưu tiên kỹ thuật viên
+    * Có chuyên môn phù hợp
+    * Gần nhất
+    * Đánh giá cao
+    * Đang rảnh
+### 3.6 Nhận/từ chối đơn 
+* **ID:FR-008: Nhận/từ chối đơn** 
+Là một kỹ thuật viên, tôi sẽ nhận được thông báo có đơn mới để nhận hoặc từ chối đơn.
+* **Yêu cầu**
+    * Thông báo ngay khi có đơn mới
+    * Xem chi tiết đơn
+    * Nút nhận đơn 
+    * Sau 30 giây mà không nhận sẽ tự dộng từ chối
+    * Nếu từ chối thì sẽ tìm kỹ thuật viên khác
+### 3.7 Theo dõi thời gian thực 
