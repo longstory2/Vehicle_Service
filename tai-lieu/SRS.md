@@ -196,4 +196,4 @@ Một số yêu cầu quan trọng khác về chất lương:
 
 ---
 ## 6. Sơ đồ Use Case (Use Case Diagram)
-![tai-lieu\Untitled Diagram.drawio (2).png]
+! [D:\Vehicle_Service\tai-lieu\Untitled Diagram.drawio (2).png]
