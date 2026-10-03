@@ -57,7 +57,7 @@ nền tảng kết nối trực tiếp với kỹ thuật viên/gara để cung 
 ## 3. Yêu cầu các chức năng (Functional Requirements)
 Dưới đâu là các yêu cầu chi tiết của hệ thống, được mô tả dưới dạng User Stories
 
-### 3.1 Quản lý tài khoản (Account Management)
+### 3.1 Khách hàng
 * **ID:FR-001: Khách hàng đăng ký tài khoản**
     * **Mô tả:** Là một Người dùng, tôi muốn đăng ký tài khoản để sử dụng các dịch vụ
 * **Yêu cầu**
@@ -85,7 +85,7 @@ Dưới đâu là các yêu cầu chi tiết của hệ thống, được mô t�
     * Xem thông tin hồ sơ (tên, SĐT, Email, địa chỉ, loại xe, biển số xe)
     * Lịch sử hoạt động
 
-### 3.2 Quản lý đơn hàng (Booking)
+### 3.2 Kỹ thuật viên
 * **ID:FR-005: Tạo đơn hàng**
     * **Mô tả:** Là một người dùng tôi muốn đặt một đơn dịch vụ để có thể sửa chữa, chăm sóc xe của mình.
 * **Yêu cầu**
@@ -104,6 +104,15 @@ Dưới đâu là các yêu cầu chi tiết của hệ thống, được mô t�
     * chi tiết đơn hàng
     * Huye đơn nếu chưa có kỹ thuật viên
     * Lịch sử đơn hàng
+
+* **ID:FR-008: Nhận/từ chối đơn** 
+    * **Mô tả:** Là một kỹ thuật viên, tôi sẽ nhận được thông báo có đơn mới để nhận hoặc từ chối đơn.
+* **Yêu cầu**
+    * Thông báo ngay khi có đơn mới
+    * Xem chi tiết đơn
+    * Nút nhận đơn 
+    * Sau 30 giây mà không nhận sẽ tự dộng từ chối
+    * Nếu từ chối thì sẽ tìm kỹ thuật viên khác
 ### 3.3 Thuật toán ghép cặp (Matching)
 * **ID:FR-007: Thuật toán ghép cặp (Matching)** 
     * **Mô tả:** Là một người dùng, tôi muốn tìm một kỹ thuật viên để sửa xe có tay nghề phù hợp
@@ -114,16 +123,8 @@ Dưới đâu là các yêu cầu chi tiết của hệ thống, được mô t�
     * Gần nhất
     * Đánh giá cao
     * Đang rảnh
-### 3.4 Nhận/từ chối đơn 
-* **ID:FR-008: Nhận/từ chối đơn** 
-    * **Mô tả:** Là một kỹ thuật viên, tôi sẽ nhận được thông báo có đơn mới để nhận hoặc từ chối đơn.
-* **Yêu cầu**
-    * Thông báo ngay khi có đơn mới
-    * Xem chi tiết đơn
-    * Nút nhận đơn 
-    * Sau 30 giây mà không nhận sẽ tự dộng từ chối
-    * Nếu từ chối thì sẽ tìm kỹ thuật viên khác
-### 3.5 Theo dõi thời gian thực (Real-time Tracking)
+
+### 3.4 Theo dõi thời gian thực (Real-time Tracking)
 * **ID:FR-009: Theo dõi vị trí kỹ thuật viên**
     * **Mô tả:** Là một người dùng, tôi muốn xem vị trí của kỹ thuật viên trên bản đồ
 * **Yêu cầu**
@@ -143,7 +144,7 @@ Dưới đâu là các yêu cầu chi tiết của hệ thống, được mô t�
         Hoàn thành
     * Kỹ thuật viên ghi chú nếu có phát hiện thêm
 
-### 3.6 Thanh toán
+### 3.5 Thanh toán
 * **ID:FR-011: Thanh toán trực tuyến**
     * **Mô tả:** Là một người dùng, tôi muốn thanh toán dịch vụ khi hoàn thành bảo dưỡng
 * **Yêu cầu**
@@ -161,7 +162,7 @@ Dưới đâu là các yêu cầu chi tiết của hệ thống, được mô t�
     * Lọc theo ngày
     * Chi tiết giao dịch
 
-### 3.7 Đánh giá và uy tín
+### 3.6 Đánh giá và uy tín
 * **ID:FR-013: Đánh giá hai chiều**
     * **Mô tả:** Là một người dùng, tôi muốn đánh giá kỹ thuật viên và kỹ thuật viên sẽ đánh giá về tôi.
 * **Yêu cầu**
@@ -176,11 +177,26 @@ Dưới đâu là các yêu cầu chi tiết của hệ thống, được mô t�
 * **Yêu cầu**
     * Điểm uy tính = (tổng sao)/(Số lần đánh giá)
     * Uy tín kỹ thuật viên ảnh hưởng đến việc ghép cặp
-### 3.8 Quản trị Admin
-* **ID:FR-015: Quản lý **
-    * **Mô tả:** 
+### 3.7 Quản trị Admin
+* **ID:FR-015: Quản lý tài khoản**
+    * **Mô tả:** Là một quản trị viên, tôi muốn xem, thêm, xóa, sửa, tài khoản của khách hàng, đặt biệt là các kỹ thuật viên. 
 * **Yêu cầu**
-    * 
+    * Tên tài khoản/Số điện thoại
+    * Mật khẩu
+    * Thuộc loại tài khoản 
+
+* **ID:FR-016: Quản lý đơn hàng**
+    * **Mô tả:** Là một quản trị viên, tôi muốn xem chi tiết các đơn hàng do kỹ thuật viên đã hoàn thành. 
+* **Yêu cầu**
+    * Xem như hóa đơn
+    * Có tên người thực hiện
+    * Thời gian
+
+* ** **ID:FR-017: Quản lý doanh thu**
+    * **Mô tả:** Là một quản trị viên, tôi muốn xem doanh thu hằng tháng. 
+* **Yêu cầu**
+    * Biểu đồ thống kê
+
 
 ---
 
