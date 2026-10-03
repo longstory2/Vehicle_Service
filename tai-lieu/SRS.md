@@ -170,15 +170,15 @@ Dưới đâu là các yêu cầu chi tiết của hệ thống, được mô t�
     * **Đánh giá kỹ thuật viên:**Chuyên môn. thái dộ, thời gian chất lượng
     * **Đánh giá khách hàng:**Thái độ, thanh toán, thông tin, địa chỉ chính xác
     * Hiển thị cả 2 đánh giá sau khi hoàn thành đơn
-### 3.8 Hệ thống uy tín (Rating System)
+
 * **ID:FR-014: Hệ thống uy tín**
     * **Mô tả:** Là một kỹ thuật viên, tôi muốn xem uy tín của tôi do hệ thông tính toán để tính toán dựa trên đánh giá
 * **Yêu cầu**
     * Điểm uy tính = (tổng sao)/(Số lần đánh giá)
     * Uy tín kỹ thuật viên ảnh hưởng đến việc ghép cặp
-### 3.9 Quản trị Admin
-* **ID:FR-015: Quản lý**
-    * **Mô tả:** Là một kỹ thuật viên, tôi muốn xem uy tín của tôi do hệ thông tính toán để tính toán dựa trên đánh giá
+### 3.8 Quản trị Admin
+* **ID:FR-015: Quản lý **
+    * **Mô tả:** 
 * **Yêu cầu**
     * 
 
@@ -196,3 +196,4 @@ Một số yêu cầu quan trọng khác về chất lương:
 
 ---
 ## 6. Sơ đồ Use Case (Use Case Diagram)
+! [![alt text](<Untitled Diagram.drawio (2)-1.png>)]
