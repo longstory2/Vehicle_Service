@@ -8,8 +8,8 @@ export default function App() {
       <Text className="text-xl font-bold text-success">
         Welcome to Nativewind!
       </Text>
-      <Link href="/(pages)/sign-in" className="mt-4 rounded bg-primary text-black p-4">Go to sign-in</Link>
-      <Link href="/(pages)/sign-up" className="mt-4 rounded bg-primary text-white p-4">Go to sign-up</Link>
+      <Link href="/(auth)/sign-in" className="mt-4 rounded bg-primary text-black p-4">Go to sign-in</Link>
+      <Link href="/(auth)/sign-up" className="mt-4 rounded bg-primary text-white p-4">Go to sign-up</Link>
     </View>
   );
 }
