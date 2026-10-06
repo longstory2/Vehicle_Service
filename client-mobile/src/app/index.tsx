@@ -1,6 +1,7 @@
-import "../../global.css";
-import Vao from "./App";
+import { Redirect } from 'expo-router'
 
-export default function App() {
-  return <Vao />;
+const index = () => {
+  return <Redirect href={"/(auth)/welcome"}/>;
 }
+
+export default index

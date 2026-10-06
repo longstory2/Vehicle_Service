@@ -1,17 +1,12 @@
-import { ScrollView, View } from 'react-native'
+import { View, Text } from 'react-native'
 import React from 'react'
-import images from '../../../assets/images';
 
-const signup = () => {
+const SignUp = () => {
   return (
-    <ScrollView className="flex-1 bg-white">
-      <View className="flex-1 bg-white">
-        <View className="relative w-full h-[250px]">
-            <Image source={}></Image>
-        </View>
-      </View>
-    </ScrollView>
+    <View>
+      <Text>SignUp</Text>
+    </View>
   )
 }
 
-export default signup;
+export default SignUp
