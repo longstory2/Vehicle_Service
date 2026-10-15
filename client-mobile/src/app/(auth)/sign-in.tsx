@@ -1,18 +1,20 @@
-import { Text,Image, ScrollView, View } from "react-native";
+import { Text, Image, ScrollView, View } from "react-native";
 import { icons, images } from "../../../constants/index";
 import InputField from "../../../components/InputField";
 import { useState } from "react";
 import CustomButton from "../../../components/CustomButton";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import OAuth from "../../../components/OAuth";
 
 const SignIn = () => {
-  const [form, setForm] = useState ({
+  const [form, setForm] = useState({
     phoneNumber: "",
     password: "",
   });
 
-  const onSignUpPress = async () => {};
+  const onSignInPress = async () => {
+    router.replace("/(tabs)/(CustomerTab)/home");
+  };
 
   return (
     <ScrollView className="flex-1 bg-white">
@@ -32,9 +34,9 @@ const SignIn = () => {
             icon={icons.person}
             value={form.phoneNumber}
             keyboardType="phone-pad"
-            onChangeText={(value) => setForm({ ...form, phoneNumber: value })}
+            onChangeText={(value: any) => setForm({ ...form, phoneNumber: value })}
           />
-          
+
           <InputField
             label="mật khẩu"
             placeholder="Nhập mật khẩu"
@@ -42,17 +44,16 @@ const SignIn = () => {
             secureTextEntry={true}
             textContentType="password"
             value={form.password}
-            onChangeText={(value) => setForm({ ...form, password: value })}
+            onChangeText={(value: any) => setForm({ ...form, password: value })}
           />
 
-          <CustomButton title="Đăng nhập" onPress={onSignUpPress} className="mt-6"/>
+          <CustomButton title="Đăng nhập" onPress={onSignInPress} className="mt-6" />
 
           {/* OAtuth các loại đăng ký khác */}
-
           <OAuth />
           <Link href={"/(auth)/sign-up"}
-          className="text-lg text-center text-general-200 mt-10">Chưa có tài khoản?
-            <Text className="text-primary-500">Đăng ký</Text>
+            className="text-lg text-center text-general-200 mt-10">Chưa có tài khoản?
+            <Text className="text-blue-500">Đăng ký</Text>
           </Link>
         </View>
       </View>

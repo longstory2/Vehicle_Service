@@ -30,11 +30,28 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#2F80ED",
+          "image": "./assets/images/splash.png",
+          "imageWidth": 200
         }
-      ]
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/PlusJakartaSans-Bold.ttf",
+            "./assets/fonts/PlusJakartaSans-Bold.ttf",
+            "./assets/fonts/PlusJakartaSans-ExtraBold.ttf",
+            "./assets/fonts/PlusJakartaSans-ExtraLight.ttf",
+            "./assets/fonts/PlusJakartaSans-Light.ttf",
+            "./assets/fonts/PlusJakartaSans-Medium.ttf",
+            "./assets/fonts/PlusJakartaSans-Regular.ttf",
+            "./assets/fonts/PlusJakartaSans-SemiBold.ttf"
+          ]
+        }
+      ],
+      "@clerk/expo",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
