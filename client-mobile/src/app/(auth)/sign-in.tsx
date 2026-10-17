@@ -1,4 +1,4 @@
-import { Text, Image, ScrollView, View } from "react-native";
+import { Alert, Text, Image, ScrollView, View } from "react-native";
 import { icons } from "../../../constants/icon";
 import { images } from "../../../constants/index";
 import InputField from "../../../components/InputField";
@@ -6,15 +6,52 @@ import { useState } from "react";
 import CustomButton from "../../../components/CustomButton";
 import { Link, router } from "expo-router";
 import OAuth from "../../../components/OAuth";
+import { useAuth, useSignIn } from "@clerk/expo";
 
 const SignIn = () => {
+  const { isLoaded } = useAuth();
+  const { signIn } = useSignIn();
   const [form, setForm] = useState({
-    phoneNumber: "",
+    emailAddress: "",
     password: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onSignInPress = async () => {
-    router.replace("/(tabs)/(CustomerTab)/home");
+    const emailAddress = form.emailAddress.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress)) {
+      Alert.alert("Email không hợp lệ", "Vui lòng nhập địa chỉ email hợp lệ.");
+      return;
+    }
+    if (!form.password.trim()) {
+      Alert.alert("Thiếu mật khẩu", "Vui lòng nhập mật khẩu.");
+      return;
+    }
+    if (!isLoaded) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await signIn.password({ emailAddress, password: form.password });
+      if (error) {
+        Alert.alert("Đăng nhập không thành công", error.message);
+        return;
+      }
+      if (signIn.status !== "complete") {
+        Alert.alert("Chưa thể đăng nhập", "Tài khoản cần hoàn tất thêm bước xác minh.");
+        return;
+      }
+
+      const { error: finalizeError } = await signIn.finalize();
+      if (finalizeError) {
+        Alert.alert("Đăng nhập không thành công", finalizeError.message);
+        return;
+      }
+      router.replace("/");
+    } catch (error) {
+      Alert.alert("Lỗi đăng nhập", error instanceof Error ? error.message : "Vui lòng thử lại.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -23,19 +60,20 @@ const SignIn = () => {
         <View className="relative w-full h-[250px]">
           <Image source={images.signUpCar} className="z-0 h-[250px] w-full" />
           <Text className="absolute bottom-5 left-5 text-2xl text-black font-JakartaSemiBold">
-            Tạo tài khoản
+            Đăng nhập
           </Text>
         </View>
 
         <View className="p-5">
           <InputField
-            label="Số điện thoại"
-            placeholder="Nhập số điện thoại"
-            maxLength={10}
+            label="Email"
+            placeholder="Nhập email"
             icon={icons.person}
-            value={form.phoneNumber}
-            keyboardType="phone-pad"
-            onChangeText={(value: any) => setForm({ ...form, phoneNumber: value })}
+            value={form.emailAddress}
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            autoCapitalize="none"
+            onChangeText={(emailAddress) => setForm({ ...form, emailAddress })}
           />
 
           <InputField
@@ -45,10 +83,10 @@ const SignIn = () => {
             secureTextEntry={true}
             textContentType="password"
             value={form.password}
-            onChangeText={(value: any) => setForm({ ...form, password: value })}
+            onChangeText={(password) => setForm({ ...form, password })}
           />
 
-          <CustomButton title="Đăng nhập" onPress={onSignInPress} className="mt-6" />
+          <CustomButton title={isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"} onPress={onSignInPress} disabled={isSubmitting} className="mt-6" />
 
           {/* OAtuth các loại đăng ký khác */}
           <OAuth />

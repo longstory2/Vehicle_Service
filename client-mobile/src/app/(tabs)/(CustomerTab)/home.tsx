@@ -1,8 +1,9 @@
-import { router } from "expo-router";
+import { useUser } from "@clerk/expo";
+import { Redirect, router } from "expo-router";
 import { useState } from "react";
 import { Dimensions, Image, ScrollView, Text, TouchableOpacity, View, } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { popularServices, serviceCategories, UserCustomer } from "../../../../constants/data"
+import { popularServices, serviceCategories } from "../../../../constants/data"
 import { banner } from "../../../../constants";
 import { icons } from "../../../../constants/icon";
 
@@ -11,7 +12,14 @@ const screenWidth = Dimensions.get("window").width;
 const serviceCardWidth = screenWidth * 0.68;
 
 const HomeScreen = () => {
+    const { isLoaded, isSignedIn, user } = useUser();
     const [activeBanner, setActiveBanner] = useState(0);
+
+    if (!isLoaded) return null;
+    if (!isSignedIn || !user) return <Redirect href="/(auth)/welcome" />;
+    if (user.publicMetadata.role === "mechanic") {
+        return <Redirect href="/(tabs)/(MechanicTab)/home" />;
+    }
 
     const goToBooking = () => {
         router.push("/(tabs)/(CustomerTab)/book");
@@ -32,18 +40,17 @@ const HomeScreen = () => {
                         accessibilityLabel="Tài khoản"
                         onPress={() => router.push("/(tabs)/(CustomerTab)/account")}
                         className="h-14 w-14 items-center justify-center rounded-full bg-white">
-                        {UserCustomer.map((user) => (
-                            <Image source={user.avatar} className="h-11 w-11 rounded-full" />
-                        ))}
+                        <Image
+                            source={user.hasImage ? { uri: user.imageUrl } : avatar}
+                            className="h-11 w-11 rounded-full"
+                        />
                     </TouchableOpacity>
 
                     <Text
                         className="ml-3 flex-1 text-[20px] text-black"
                         style={{ fontFamily: "Jakarta-SemiBold" }}>
 
-                        {UserCustomer.map((user) => (
-                            <Text>Xin Chào,{user.Name}</Text>
-                        ))}
+                        Xin chào, {user.firstName || user.fullName || "bạn"}
                     </Text>
 
                     <TouchableOpacity

@@ -8,7 +8,7 @@
     "scheme": "clientmobile",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "../assets/images/splash.png",
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#2F80ED"
     },
@@ -30,9 +30,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#2F80ED",
-          "image": "./assets/images/splash.png",
-          "imageWidth": 200
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
         }
       ],
       [
