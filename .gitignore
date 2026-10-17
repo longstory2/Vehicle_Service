@@ -1,0 +1,8 @@
+# Thư viện cài bằng npm - không bao giờ đưa lên Git
+node_modules/
+
+# Biến môi trường chứa thông tin bí mật
+.env
+
+# File build
+dist/
