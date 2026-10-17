@@ -2,44 +2,13 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Dimensions, Image, ScrollView, Text, TouchableOpacity, View, } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import { popularServices, serviceCategories, UserCustomer } from "../../../../constants/data"
 import { banner } from "../../../../constants";
 import { icons } from "../../../../constants/icon";
 
 const avatar = require("../../../../assets/images/avatar.png");
-const serviceImage1 = require("../../../../assets/images/popular-service-1.png");
-const serviceImage2 = require("../../../../assets/images/popular-service-2.png");
-const serviceImage3 = require("../../../../assets/images/popular-service-3.png");
-
 const screenWidth = Dimensions.get("window").width;
 const serviceCardWidth = screenWidth * 0.68;
-
-const popularServices = [
-    {
-        id: "oil",
-        title: "Thay nhớt xe",
-        price: "150.000 VND",
-        image: serviceImage1,
-    },
-    {
-        id: "motorbike-tire",
-        title: "Thay vỏ xe máy",
-        price: "75.000 VND",
-        image: serviceImage2,
-    },
-    {
-        id: "car-tire",
-        title: "Thay vỏ xe ô tô",
-        price: "150.000 VND",
-        image: serviceImage3,
-    },
-];
-
-const serviceCategories = [
-    { id: "repair", title: "Sửa chữa bảo dưỡng", icon: "🧑‍🔧" },
-    { id: "parts", title: "Thay phụ tùng", icon: "🛠️" },
-    { id: "other", title: "Vấn đề khác", icon: "🔧" },
-];
 
 const HomeScreen = () => {
     const [activeBanner, setActiveBanner] = useState(0);
@@ -62,16 +31,19 @@ const HomeScreen = () => {
                         accessibilityRole="button"
                         accessibilityLabel="Tài khoản"
                         onPress={() => router.push("/(tabs)/(CustomerTab)/account")}
-                        className="h-14 w-14 items-center justify-center rounded-full bg-white"
-                    >
-                        <Image source={avatar} className="h-11 w-11 rounded-full" />
+                        className="h-14 w-14 items-center justify-center rounded-full bg-white">
+                        {UserCustomer.map((user) => (
+                            <Image source={user.avatar} className="h-11 w-11 rounded-full" />
+                        ))}
                     </TouchableOpacity>
 
                     <Text
                         className="ml-3 flex-1 text-[20px] text-black"
-                        style={{ fontFamily: "Jakarta-SemiBold" }}
-                    >
-                        Xin Chào, Lê Minh A
+                        style={{ fontFamily: "Jakarta-SemiBold" }}>
+
+                        {UserCustomer.map((user) => (
+                            <Text>Xin Chào,{user.Name}</Text>
+                        ))}
                     </Text>
 
                     <TouchableOpacity
@@ -99,8 +71,7 @@ const HomeScreen = () => {
                             <View
                                 key={item.id}
                                 style={{ width: screenWidth }}
-                                className="items-center"
-                            >
+                                className="items-center">
                                 <Image
                                     source={item.images}
                                     resizeMode="cover"
