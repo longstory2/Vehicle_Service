@@ -29,6 +29,21 @@ export const serviceCategories = [
     { id: "other", title: "Vấn đề khác", icon: "🔧" },
 ];
 
+export const bookingPreview = {
+    pickupAddress: "Phan Đăng Lưu, Bình Thạnh, TP. Hồ Chí Minh",
+    vehicleInfo: [
+        { label: "Loại xe", value: "Xe máy" },
+        { label: "Hãng xe", value: "Honda" },
+        { label: "Biển số xe", value: "R-123-22" },
+    ],
+    serviceInfo: [
+        { label: "Loại dịch vụ", value: "Thay phụ tùng" },
+        { label: "Phụ tùng", value: "Vỏ xe" },
+        { label: "Mô tả", value: "Mô tả của khách hàng" },
+    ],
+    estimatedPrice: 150000,
+};
+
 export const UserCustomer = [
     {
         id: 1,
@@ -42,4 +57,5 @@ export const UserCustomer = [
 export const data = {
     popularServices,
     serviceCategories,
+    bookingPreview,
 };
