@@ -12,15 +12,18 @@ import {
     View,
 } from "react-native";
 import CustomButton from "../../../../components/CustomButton";
-import { serviceCategories } from "../../../../constants/data";
+import {
+    serviceCategories,
+    spareParts,
+    vehicleMakes,
+    vehicleTypes,
+    type CatalogOption,
+} from "../../../../constants/data";
 import { images } from "../../../../constants/index";
+import { router } from "expo-router";
 
 type ServiceCategory = (typeof serviceCategories)[number];
 type FormValues = Record<string, string>;
-
-const vehicleTypes = ["Xe máy", "Ô tô"];
-const vehicleMakes = ["Honda", "Yamaha", "Suzuki", "VinFast", "Toyota", "Khác"];
-const spareParts = ["Lốp xe", "Dầu nhớt", "Ắc quy", "Phanh", "Khác"];
 
 const FormInput = ({
     label,
@@ -73,11 +76,25 @@ const service = () => {
     };
 
     const updateValue = (field: string, value: string) => {
-        setValues((current) => ({ ...current, [field]: value }));
+        setValues((current) => {
+            if (field === "vehicleType") {
+                const currentPart = spareParts.find((part) => part.id === current.sparePart);
+                const partIsCompatible = currentPart?.vehicleTypeIds.includes(value);
+                return {
+                    ...current,
+                    vehicleType: value,
+                    sparePart: partIsCompatible ? current.sparePart : "",
+                };
+            }
+
+            return { ...current, [field]: value };
+        });
     };
 
     const submitForm = () => {
-        const requiredFields = activeCategory?.id === "parts"
+        if (!activeCategory) return;
+
+        const requiredFields = activeCategory.id === "parts"
             ? ["vehicleType", "vehicleMake", "plate", "sparePart"]
             : ["vehicleType", "vehicleMake", "plate", "mileage"];
 
@@ -86,10 +103,23 @@ const service = () => {
             return;
         }
 
-        Alert.alert("Thông tin hợp lệ", "Biểu mẫu đã được kiểm tra.");
+        const selectedSparePart = spareParts.find((part) => part.id === values.sparePart);
+        const params = {
+            categoryId: activeCategory.id,
+            vehicleTypeId: values.vehicleType,
+            vehicleMakeId: values.vehicleMake,
+            plate: values.plate.trim(),
+            sparePartId: values.sparePart || "",
+            mileage: values.mileage?.trim() || "",
+            description: values.description?.trim() || "",
+            estimatedPrice: String(selectedSparePart?.estimatedPrice ?? ""),
+        };
+
+        closeForm();
+        router.push({ pathname: "/(tabs)/(CustomerTab)/book", params });
     };
 
-    const renderSelect = (field: string, label: string, options: string[]) => (
+    const renderSelect = (field: string, label: string, options: CatalogOption[]) => (
         <View key={field} className="mb-3">
             <Text className="mb-1.5 text-[16px] font-Jakarta-Bold text-black">
                 {label}<Text className="text-red-500">*</Text>
@@ -101,7 +131,7 @@ const service = () => {
                 className="h-14 w-full flex-row items-center justify-between rounded-xl bg-[#f4f4f4] px-4"
             >
                 <Text className={`text-[16px] ${values[field] ? "text-black" : "text-[#929292]"}`}>
-                    {values[field] || "Chọn"}
+                    {options.find((option) => option.id === values[field])?.label || "Chọn"}
                 </Text>
                 <Text className="text-[20px] text-black">{openDropdown === field ? "⌃" : "⌄"}</Text>
             </TouchableOpacity>
@@ -109,15 +139,15 @@ const service = () => {
                 <View className="mt-1 rounded-xl border border-neutral-200 bg-white">
                     {options.map((option) => (
                         <TouchableOpacity
-                            key={option}
+                            key={option.id}
                             accessibilityRole="button"
                             onPress={() => {
-                                updateValue(field, option);
+                                updateValue(field, option.id);
                                 setOpenDropdown(null);
                             }}
                             className="border-b border-neutral-100 px-4 py-3 last:border-b-0"
                         >
-                            <Text className="text-[15px] text-black">{option}</Text>
+                            <Text className="text-[15px] text-black">{option.label}</Text>
                         </TouchableOpacity>
                     ))}
                 </View>
@@ -195,7 +225,13 @@ const service = () => {
                                 placeholder="Nhập biển số xe"
                             />
                             {activeCategory?.id === "parts" ? (
-                                renderSelect("sparePart", "Phụ tùng", spareParts)
+                                renderSelect(
+                                    "sparePart",
+                                    "Phụ tùng",
+                                    spareParts.filter((part) =>
+                                        !values.vehicleType || part.vehicleTypeIds.includes(values.vehicleType),
+                                    ),
+                                )
                             ) : (
                                 <FormInput
                                     label="Số Km hiện tại"

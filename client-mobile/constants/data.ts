@@ -29,6 +29,41 @@ export const serviceCategories = [
     { id: "other", title: "Vấn đề khác", icon: "🔧" },
 ];
 
+export type CatalogOption = { id: string; label: string };
+
+export const vehicleTypes: CatalogOption[] = [
+    { id: "motorcycle", label: "Xe máy" },
+    { id: "car", label: "Ô tô" },
+];
+
+export const vehicleMakes: CatalogOption[] = [
+    { id: "honda", label: "Honda" },
+    { id: "yamaha", label: "Yamaha" },
+    { id: "suzuki", label: "Suzuki" },
+    { id: "vinfast", label: "VinFast" },
+    { id: "toyota", label: "Toyota" },
+    { id: "other", label: "Khác" },
+];
+
+export type SparePartOption = CatalogOption & {
+    vehicleTypeIds: string[];
+    estimatedPrice: number;
+};
+
+export const spareParts: SparePartOption[] = [
+    { id: "motorcycle-tire", label: "Lốp xe máy", vehicleTypeIds: ["motorcycle"], estimatedPrice: 75000 },
+    { id: "car-tire", label: "Lốp xe ô tô", vehicleTypeIds: ["car"], estimatedPrice: 900000 },
+    { id: "engine-oil", label: "Dầu nhớt", vehicleTypeIds: ["motorcycle", "car"], estimatedPrice: 150000 },
+    { id: "battery", label: "Ắc quy", vehicleTypeIds: ["motorcycle", "car"], estimatedPrice: 350000 },
+    { id: "brake", label: "Phanh", vehicleTypeIds: ["motorcycle", "car"], estimatedPrice: 220000 },
+    { id: "other", label: "Khác", vehicleTypeIds: ["motorcycle", "car"], estimatedPrice: 0 },
+];
+
+export const serviceEstimatedPrices: Record<string, number> = {
+    repair: 150000,
+    other: 0,
+};
+
 export const bookingPreview = {
     pickupAddress: "Phan Đăng Lưu, Bình Thạnh, TP. Hồ Chí Minh",
     vehicleInfo: [
@@ -57,5 +92,9 @@ export const UserCustomer = [
 export const data = {
     popularServices,
     serviceCategories,
+    vehicleTypes,
+    vehicleMakes,
+    spareParts,
+    serviceEstimatedPrices,
     bookingPreview,
 };
