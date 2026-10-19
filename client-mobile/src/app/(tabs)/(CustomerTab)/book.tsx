@@ -66,6 +66,7 @@ const BookScreen = () => {
         : selectedSparePart?.estimatedPrice
         ?? serviceEstimatedPrices[categoryId]
         ?? bookingPreview.estimatedPrice;
+
     const vehicleRows = [
         {
             label: "Loại xe",

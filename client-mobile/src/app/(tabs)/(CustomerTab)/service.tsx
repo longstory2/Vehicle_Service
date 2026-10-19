@@ -193,7 +193,7 @@ const service = () => {
                 >
                     <View className="w-full max-h-[88%] rounded-[36px] bg-white px-5 pb-5 pt-4">
                         <View className="mb-3 min-h-10 flex-row items-center justify-center">
-                            <Text className="flex-1 text-center text-[21px] font-Jakarta-Bold text-black">
+                            <Text className="flex-1 text-center text-[16px] font-Jakarta-Bold text-black">
                                 {activeCategory?.id === "repair"
                                     ? "Đơn thông tin bảo dưỡng"
                                     : activeCategory?.id === "parts"
