@@ -1,0 +1,4 @@
+// Trang quản lý đơn dịch vụ
+export default function Orders() {
+  return <h2>Quản lý đơn hàng</h2>;
+}
