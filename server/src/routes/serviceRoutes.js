@@ -6,16 +6,18 @@ import {
   updateService,
   deleteService,
 } from "../controllers/serviceController.js";
+import { protect, authorize } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
-// Đường dẫn gốc là /api/services (khai báo trong app.js)
-router.get("/", getServices); //        GET    /api/services
-router.get("/:id", getServiceById); //   GET    /api/services/:id
-router.post("/", createService); //      POST   /api/services
-router.put("/:id", updateService); //    PUT    /api/services/:id
-router.delete("/:id", deleteService); // DELETE /api/services/:id
+// Xem danh sách/chi tiết: ai cũng xem được (app khách hàng cần hiển thị dịch vụ)
+router.get("/", getServices);
+router.get("/:id", getServiceById);
 
-// Lưu ý: Giai đoạn 4 sẽ thêm middleware đăng nhập để chỉ admin được thêm/sửa/xóa
+// Thêm/sửa/xóa: phải đăng nhập (protect) VÀ là admin (authorize)
+// Middleware chạy lần lượt từ trái sang phải; không qua được thì dừng, không tới controller
+router.post("/", protect, authorize("admin"), createService);
+router.put("/:id", protect, authorize("admin"), updateService);
+router.delete("/:id", protect, authorize("admin"), deleteService);
 
 export default router;
