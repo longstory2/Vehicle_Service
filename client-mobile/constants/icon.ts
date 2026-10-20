@@ -6,6 +6,9 @@ import google from "../assets/icons/google.png";
 import service from "../assets/icons/service.png"
 import book from "../assets/icons/book.png";
 import profile from "../assets/icons/profile.png";
+import setting from "../assets/icons/setting.png";
+import power from "../assets/icons/power.png";
+import history from "../assets/icons/history.png"
 
 export const icons = {
     home,
@@ -16,6 +19,9 @@ export const icons = {
     google,
     service,
     book,
+    setting,
+    power,
+    history,
 } as const;
 
 export type IconKey = keyof typeof icons;

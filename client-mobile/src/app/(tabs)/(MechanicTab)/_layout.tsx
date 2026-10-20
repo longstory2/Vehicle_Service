@@ -10,9 +10,9 @@ const TabIcon = ({ source }: { source: ImageSourcePropType }) => (
 )
 const TabLayout = () => (
     <Tabs screenOptions={{ headerShown: false }}>
-        <Tabs.Screen name="home" options={{ title: 'Trang chủ' }} />
-        <Tabs.Screen name="haveBook" options={{ title: 'Đơn đặt' }} />
-        <Tabs.Screen name="setting" options={{ title: 'Tài khoản' }} />
+        <Tabs.Screen name="home" />
+        <Tabs.Screen name="haveBook" />
+        <Tabs.Screen name="setting" />
     </Tabs>
 )
 
