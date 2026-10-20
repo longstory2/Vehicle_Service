@@ -2,12 +2,14 @@ import { useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    ImageSourcePropType,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
     View,
+    Image,
     useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -21,7 +23,14 @@ import {
     vehicleTypes,
 } from "../../../../constants/data";
 import LeafletMap from "../../../../components/LeafletMap";
-
+import { icons } from "../../../../constants/icon";
+const TabIcon = ({ source }: { source: ImageSourcePropType }) => (
+    <View>
+        <View>
+            <Image source={source} className="w-6 h-6" />
+        </View>
+    </View>
+)
 type BookingParams = {
     categoryId?: string | string[];
     vehicleTypeId?: string | string[];
@@ -187,8 +196,8 @@ const BookScreen = () => {
                             <Text style={styles.backArrow}>←</Text>
                         </Pressable>
                         <View style={styles.addressField}>
-                            <View style={styles.locationIcon}>
-                                <View style={styles.locationDot} />
+                            <View>
+                                <TabIcon source={icons.location} />
                             </View>
                             <TextInput
                                 accessibilityLabel="Địa chỉ điểm đón"
@@ -256,7 +265,7 @@ const BookScreen = () => {
                             onPress={() => setSelectedOption("cash")}
                             style={styles.optionButton}
                         >
-                            <Text style={styles.optionIcon}>▰</Text>
+                            <TabIcon source={icons.payment} />
                             <Text style={[styles.optionText, selectedOption === "cash" && styles.optionSelected]}>
                                 Tiền mặt
                             </Text>
@@ -267,7 +276,7 @@ const BookScreen = () => {
                             onPress={() => setSelectedOption("offer")}
                             style={styles.optionButton}
                         >
-                            <Text style={styles.optionIcon}>%</Text>
+                            <TabIcon source={icons.sale} />
                             <Text style={[styles.optionText, selectedOption === "offer" && styles.optionSelected]}>
                                 Ưu đãi
                             </Text>

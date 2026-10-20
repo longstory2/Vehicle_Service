@@ -51,4 +51,74 @@ const InputField = ({
   </KeyboardAvoidingView>
 );
 
+export const FormInput = ({
+  label,
+  required = false,
+  value,
+  onChangeText,
+  placeholder,
+  multiline = false,
+  keyboardType = "default",
+}: {
+  label: string;
+  required?: boolean;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  multiline?: boolean;
+  keyboardType?: "default" | "phone-pad" | "numeric";
+}) => (
+  <View className="mb-3">
+    <Text className="mb-1.5 text-[16px] font-Jakarta-Bold text-black">
+      {label}{required && <Text className="text-red-500">*</Text>}
+    </Text>
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor="#929292"
+      keyboardType={keyboardType}
+      multiline={multiline}
+      textAlignVertical={multiline ? "top" : "center"}
+      className={`w-full rounded-xl bg-[#f4f4f4] px-4 text-[16px] text-black ${multiline ? "h-28 py-3" : "h-14"}`}
+    />
+  </View>
+);
+
+// hiển thị tài khoản bên acoout.tsx (CustomerTab)
+type AccountFieldProps = {
+  label: string;
+  value: string;
+  onChangeText?: (value: string) => void;
+  editable?: boolean;
+  keyboardType?: "default" | "phone-pad" | "email-address";
+  accessibilityLabel: string;
+};
+
+export const AccountField = ({
+  label,
+  value,
+  onChangeText,
+  editable = false,
+  keyboardType = "default",
+  accessibilityLabel,
+}: AccountFieldProps) => (
+  <View className="mb-2">
+    <Text className="mb-1 text-lg font-JakartaSemiBold text-black">{label}</Text>
+    <TextInput
+      accessibilityLabel={accessibilityLabel}
+      className="h-12 rounded-xl bg-neutral-100 px-3 text-base text-black"
+      value={value}
+      onChangeText={onChangeText}
+      editable={editable}
+      keyboardType={keyboardType}
+      autoCapitalize="none"
+      maxLength={16}
+    />
+  </View>
+);
+
+
+
+
 export default InputField;

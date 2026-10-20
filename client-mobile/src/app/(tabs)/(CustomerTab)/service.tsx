@@ -1,63 +1,12 @@
 import { useState } from "react";
-import {
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, } from "react-native";
 import CustomButton from "../../../../components/CustomButton";
-import {
-    serviceCategories,
-    spareParts,
-    vehicleMakes,
-    vehicleTypes,
-    type CatalogOption,
-} from "../../../../constants/data";
+import { serviceCategories, spareParts, vehicleMakes, vehicleTypes, type CatalogOption, } from "../../../../constants/data";
 import { images } from "../../../../constants/index";
 import { router } from "expo-router";
-
+import { FormInput } from "../../../../components/InputField"
 type ServiceCategory = (typeof serviceCategories)[number];
 type FormValues = Record<string, string>;
-
-const FormInput = ({
-    label,
-    required = false,
-    value,
-    onChangeText,
-    placeholder,
-    multiline = false,
-    keyboardType = "default",
-}: {
-    label: string;
-    required?: boolean;
-    value: string;
-    onChangeText: (text: string) => void;
-    placeholder: string;
-    multiline?: boolean;
-    keyboardType?: "default" | "phone-pad" | "numeric";
-}) => (
-    <View className="mb-3">
-        <Text className="mb-1.5 text-[16px] font-Jakarta-Bold text-black">
-            {label}{required && <Text className="text-red-500">*</Text>}
-        </Text>
-        <TextInput
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder}
-            placeholderTextColor="#929292"
-            keyboardType={keyboardType}
-            multiline={multiline}
-            textAlignVertical={multiline ? "top" : "center"}
-            className={`w-full rounded-xl bg-[#f4f4f4] px-4 text-[16px] text-black ${multiline ? "h-28 py-3" : "h-14"}`}
-        />
-    </View>
-);
 
 const service = () => {
     const [activeCategory, setActiveCategory] = useState<ServiceCategory | null>(null);
@@ -94,8 +43,7 @@ const service = () => {
     const submitForm = () => {
         if (!activeCategory) return;
 
-        const requiredFields = activeCategory.id === "parts"
-            ? ["vehicleType", "vehicleMake", "plate", "sparePart"]
+        const requiredFields = activeCategory.id === "parts" ? ["vehicleType", "vehicleMake", "plate", "sparePart"]
             : ["vehicleType", "vehicleMake", "plate", "mileage"];
 
         if (requiredFields.some((field) => !values[field]?.trim())) {
@@ -194,11 +142,7 @@ const service = () => {
                     <View className="w-full max-h-[88%] rounded-[36px] bg-white px-5 pb-5 pt-4">
                         <View className="mb-3 min-h-10 flex-row items-center justify-center">
                             <Text className="flex-1 text-center text-[16px] font-Jakarta-Bold text-black">
-                                {activeCategory?.id === "repair"
-                                    ? "Đơn thông tin bảo dưỡng"
-                                    : activeCategory?.id === "parts"
-                                        ? "Đơn thông tin thay phụ tùng"
-                                        : "Đơn thông tin các vấn đề"}
+                                {activeCategory?.id === "repair" ? "Đơn thông tin bảo dưỡng" : activeCategory?.id === "parts" ? "Đơn thông tin thay phụ tùng" : "Đơn thông tin các vấn đề"}
                             </Text>
                             <TouchableOpacity
                                 accessibilityRole="button"

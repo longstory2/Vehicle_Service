@@ -44,8 +44,7 @@ const MechanicHome = () => {
     const { isLoaded, isSignedIn, user } = useUser();
 
     const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
-    const [pickupLocation, setPickupLocation] =
-        useState<PickupLocation | null>(null);
+    const [pickupLocation, setPickupLocation] = useState<PickupLocation | null>(null);
     const [pickupAddress, setPickupAddress] = useState("");
     const [isSearchingLocation, setIsSearchingLocation] = useState(false);
     const [locationError, setLocationError] = useState("");

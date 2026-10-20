@@ -8,7 +8,11 @@ import book from "../assets/icons/book.png";
 import profile from "../assets/icons/profile.png";
 import setting from "../assets/icons/setting.png";
 import power from "../assets/icons/power.png";
-import history from "../assets/icons/history.png"
+import history from "../assets/icons/history.png";
+import backarrow from "../assets/icons/back-arrow.png";
+import payment from "../assets/icons/payment.png";
+import sale from "../assets/icons/sale.png";
+import location from "../assets/icons/pin.png"
 
 export const icons = {
     home,
@@ -22,6 +26,10 @@ export const icons = {
     setting,
     power,
     history,
+    backarrow,
+    payment,
+    sale,
+    location,
 } as const;
 
 export type IconKey = keyof typeof icons;
