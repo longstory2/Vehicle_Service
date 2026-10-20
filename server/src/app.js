@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import authRoutes from "./routes/authRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
@@ -17,10 +18,11 @@ app.get("/api/health", (req, res) => {
 });
 
 // ===== Các route nghiệp vụ =====
+app.use("/api/auth", authRoutes);
 app.use("/api/services", serviceRoutes);
 
 // ===== Xử lý lỗi (luôn đặt CUỐI CÙNG, sau mọi route) =====
-app.use(notFound); //     không khớp route nào → 404
-app.use(errorHandler); // mọi lỗi khác → trả thông báo tiếng Việt
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;
