@@ -12,6 +12,13 @@ app.use(cors());
 // Đọc dữ liệu JSON từ body của request
 app.use(express.json());
 
+// In ra mỗi request sau khi xử lý xong, ví dụ: "POST /api/auth/login → 200"
+// Giúp kiểm tra app mobile / Admin Web có gọi tới được server hay không
+app.use((req, res, next) => {
+  res.on("finish", () => console.log(`${req.method} ${req.originalUrl} → ${res.statusCode}`));
+  next();
+});
+
 // Route kiểm tra server còn sống hay không
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Server đang chạy" });

@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/expo";
+import { useAuth } from "../../../../context/AuthContext";
 import { Redirect, router } from "expo-router";
 import { useState } from "react";
 import { Dimensions, Image, ScrollView, Text, TouchableOpacity, View, } from "react-native";
@@ -12,12 +12,12 @@ const screenWidth = Dimensions.get("window").width;
 const serviceCardWidth = screenWidth * 0.68;
 
 const HomeScreen = () => {
-    const { isLoaded, isSignedIn, user } = useUser();
+    const { isLoaded, isSignedIn, user } = useAuth();
     const [activeBanner, setActiveBanner] = useState(0);
 
     if (!isLoaded) return null;
     if (!isSignedIn || !user) return <Redirect href="/(auth)/welcome" />;
-    if (user.publicMetadata.role === "mechanic") {
+    if (user.role === "technician") {
         return <Redirect href="/(tabs)/(MechanicTab)/home" />;
     }
 
@@ -41,7 +41,7 @@ const HomeScreen = () => {
                         onPress={() => router.push("/(tabs)/(CustomerTab)/account")}
                         className="h-14 w-14 items-center justify-center rounded-full bg-white">
                         <Image
-                            source={user.hasImage ? { uri: user.imageUrl } : avatar}
+                            source={avatar}
                             className="h-11 w-11 rounded-full"
                         />
                     </TouchableOpacity>
@@ -50,7 +50,7 @@ const HomeScreen = () => {
                         className="ml-3 flex-1 text-[20px] text-black"
                         style={{ fontFamily: "Jakarta-SemiBold" }}>
 
-                        Xin chào, {user.firstName || user.fullName || "bạn"}
+                        Xin chào, {user.fullName.trim().split(/\s+/).pop() || "bạn"}
                     </Text>
 
                     <TouchableOpacity

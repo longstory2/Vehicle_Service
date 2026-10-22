@@ -40,7 +40,24 @@ const seed = async () => {
     console.log(`Đã tạo admin: ${email}`);
   }
 
-  // 2. Thêm dịch vụ mẫu: chỉ thêm cái chưa có (tìm theo tên + loại xe)
+  // 2. Tạo tài khoản mẫu để thử app mobile (chỉ tạo khi chưa có)
+  // Kỹ thuật viên chưa có màn hình tạo trên Admin Web (Giai đoạn 5) nên tạm tạo ở đây
+  const sampleUsers = [
+    { fullName: "Kỹ thuật viên Mẫu", email: "ktv@vehicle.vn", phone: "0901111111", role: "technician", password: "Ktv@123" },
+    { fullName: "Khách hàng Mẫu", email: "khach@vehicle.vn", phone: "0902222222", role: "customer", password: "Khach@123" },
+  ];
+  for (const { password, ...info } of sampleUsers) {
+    if (await User.findOne({ email: info.email })) {
+      console.log(`Tài khoản ${info.email} đã tồn tại, bỏ qua`);
+      continue;
+    }
+    const user = new User(info);
+    await user.setPassword(password);
+    await user.save();
+    console.log(`Đã tạo ${info.role}: ${info.email} / ${password}`);
+  }
+
+  // 3. Thêm dịch vụ mẫu: chỉ thêm cái chưa có (tìm theo tên + loại xe)
   // $setOnInsert: chỉ gán dữ liệu khi THÊM MỚI, dịch vụ đã có thì giữ nguyên
   for (const { name, vehicleType, ...rest } of sampleServices) {
     await Service.updateOne({ name, vehicleType }, { $setOnInsert: rest }, { upsert: true });

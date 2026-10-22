@@ -1,19 +1,17 @@
-import { useUser } from '@clerk/expo'
-import { Redirect, type Href } from 'expo-router'
+import { Redirect } from "expo-router";
+import { useAuth } from "../../context/AuthContext";
 
+// Màn hình điều hướng: dựa vào trạng thái đăng nhập và vai trò để chuyển tới đúng nhóm tab
 const Index = () => {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded, isSignedIn, user } = useAuth();
 
-  if (!isLoaded) return null;
+  if (!isLoaded) return null; // đang đọc token đã lưu
   if (!isSignedIn || !user) return <Redirect href="/(auth)/welcome" />;
-  if (user.unsafeMetadata.role === "mechanic") {
+  if (user.role === "technician") {
     return <Redirect href="/(tabs)/(MechanicTab)/home" />;
-  }
-  if (user.unsafeMetadata.profileComplete !== true) {
-    return <Redirect href={"/(auth)/complete-profile" as Href} />;
   }
 
   return <Redirect href="/(tabs)/(CustomerTab)/home" />;
-}
+};
 
-export default Index
+export default Index;

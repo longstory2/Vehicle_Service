@@ -30,7 +30,8 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files (.env chứa địa chỉ IP riêng của từng máy, không đưa lên Git)
+.env
 .env*.local
 
 # typescript

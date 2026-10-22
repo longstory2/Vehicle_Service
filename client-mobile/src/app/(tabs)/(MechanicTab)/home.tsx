@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/expo";
+import { useAuth } from "../../../../context/AuthContext";
 import { Redirect, router } from "expo-router";
 import { useRef, useState } from "react";
 import { ActivityIndicator, Alert, ImageSourcePropType, Pressable, StyleSheet, Text, TextInput, View, Image } from "react-native";
@@ -41,7 +41,7 @@ const QuickAction = ({ icon, label, onPress }: QuickActionProps) => (
 );
 
 const MechanicHome = () => {
-    const { isLoaded, isSignedIn, user } = useUser();
+    const { isLoaded, isSignedIn, user } = useAuth();
 
     const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
     const [pickupLocation, setPickupLocation] = useState<PickupLocation | null>(null);
@@ -138,7 +138,7 @@ const MechanicHome = () => {
         return <Redirect href="/(auth)/welcome" />;
     }
 
-    if (user.publicMetadata.role !== "mechanic") {
+    if (user.role !== "technician") {
         return <Redirect href="/(tabs)/(CustomerTab)/home" />;
     }
 

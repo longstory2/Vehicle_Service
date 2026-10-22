@@ -21,10 +21,13 @@ export const errorHandler = (err, req, res, next) => {
     message = "Mã không hợp lệ";
   }
 
-  // Trùng dữ liệu có ràng buộc unique (trùng tên dịch vụ trong cùng loại xe)
+  // Trùng dữ liệu có ràng buộc unique; err.keyValue cho biết trùng ở trường nào
   if (err.code === 11000) {
     statusCode = 400;
-    message = "Dịch vụ này đã tồn tại cho loại xe đã chọn";
+    const field = Object.keys(err.keyValue || {})[0];
+    if (field === "email") message = "Email này đã được sử dụng";
+    else if (field === "phone") message = "Số điện thoại này đã được sử dụng";
+    else message = "Dịch vụ này đã tồn tại cho loại xe đã chọn"; // unique (name, vehicleType) của services
   }
 
   // In lỗi ra terminal để dễ tìm nguyên nhân khi lập trình

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-    Alert,
     Image,
     Pressable,
     Text,
@@ -9,9 +8,10 @@ import {
     type ImageSourcePropType,
 } from "react-native";
 import { Redirect, router } from "expo-router";
-import { useClerk, useUser } from "@clerk/expo";
+import { useAuth } from "../../../../context/AuthContext";
 import { icons } from "../../../../constants/icon";
 import { normalizeVietnamPhoneNumber } from "../../../../utils/auth";
+import { confirmAction, showAlert } from "../../../../utils/notify";
 const avatar = require("../../../../assets/images/avatar.png");
 const TabIcon = ({ source }: { source: ImageSourcePropType }) => (
     <Image source={source} className="w-6 h-6" resizeMode="contain" />
@@ -50,20 +50,14 @@ const AccountField = ({
 );
 
 const Account = () => {
-    const { signOut } = useClerk();
-    const { isLoaded, isSignedIn, user } = useUser();
+    const { isLoaded, isSignedIn, user, signOut, updateProfile } = useAuth();
     const [phoneNumber, setPhoneNumber] = useState("");
     const [isSaving, setIsSaving] = useState(false);
 
-    const savedPhone =
-        typeof user?.unsafeMetadata.contactPhone === "string"
-            ? user.unsafeMetadata.contactPhone
-            : "";
-    const email = user?.primaryEmailAddress?.emailAddress ?? "";
-    const fullName =
-        user?.fullName?.trim() ||
-        [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-        "Tên chưa cập nhật";
+    // Thông tin lấy từ server (GET /api/auth/me), số điện thoại dạng 0901234567
+    const savedPhone = user?.phone ?? "";
+    const email = user?.email ?? "";
+    const fullName = user?.fullName?.trim() || "Tên chưa cập nhật";
 
     useEffect(() => {
         setPhoneNumber(savedPhone);
@@ -77,7 +71,7 @@ const Account = () => {
     const handleSavePhone = async () => {
         const normalizedPhone = normalizeVietnamPhoneNumber(phoneNumber);
         if (!normalizedPhone) {
-            Alert.alert(
+            showAlert(
                 "Số điện thoại không hợp lệ",
                 "Vui lòng nhập số điện thoại di động Việt Nam gồm 10 số.",
             );
@@ -86,16 +80,12 @@ const Account = () => {
 
         setIsSaving(true);
         try {
-            await user.updateMetadata({
-                unsafeMetadata: {
-                    ...user.unsafeMetadata,
-                    contactPhone: normalizedPhone,
-                },
-            });
-            setPhoneNumber(normalizedPhone);
-            Alert.alert("Đã lưu", "Số điện thoại của bạn đã được cập nhật.");
+            // PUT /api/auth/me: server chuẩn hóa và lưu số điện thoại
+            const updated = await updateProfile({ phone: phoneNumber });
+            setPhoneNumber(updated.phone ?? "");
+            showAlert("Đã lưu", "Số điện thoại của bạn đã được cập nhật.");
         } catch (error) {
-            Alert.alert(
+            showAlert(
                 "Không thể lưu thông tin",
                 error instanceof Error ? error.message : "Vui lòng thử lại.",
             );
@@ -105,24 +95,11 @@ const Account = () => {
     };
 
     const handleSignOut = () => {
-        Alert.alert("Đăng xuất", "Bạn có chắc muốn đăng xuất khỏi tài khoản?", [
-            { text: "Hủy", style: "cancel" },
-            {
-                text: "Đăng xuất",
-                style: "destructive",
-                onPress: async () => {
-                    try {
-                        await signOut();
-                        router.replace("/(auth)/sign-in");
-                    } catch (error) {
-                        Alert.alert(
-                            "Không thể đăng xuất",
-                            error instanceof Error ? error.message : "Vui lòng thử lại.",
-                        );
-                    }
-                },
-            },
-        ]);
+        // Đăng xuất JWT: chỉ xóa token trên máy, không cần gọi server
+        confirmAction("Đăng xuất", "Bạn có chắc muốn đăng xuất khỏi tài khoản?", "Đăng xuất", async () => {
+            await signOut();
+            router.replace("/(auth)/sign-in");
+        });
     };
 
     return (
@@ -142,7 +119,7 @@ const Account = () => {
 
             <View className="mt-5 items-center">
                 <Image
-                    source={user.hasImage ? { uri: user.imageUrl } : avatar}
+                    source={avatar}
                     className="h-24 w-24  rounded-full"
                 />
                 <Text className="mt-3 text-lg font-JakartaSemiBold text-black">
