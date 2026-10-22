@@ -85,7 +85,7 @@ export const UserCustomer = [
         avatar: avatar,
         Name: "Lê Văn A",
         phoneNumber: "01234567890",
-        email: "nguyenphamquynhlong@gmail.com", //lấy từ clerk
+        email: "nguyenphamquynhlong@gmail.com", //lấy từ server (useAuth)
     }
 ]
 

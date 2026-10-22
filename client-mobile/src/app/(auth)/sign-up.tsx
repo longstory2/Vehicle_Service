@@ -1,110 +1,57 @@
-import { Text, Image, ScrollView, View, Alert } from "react-native";
+import { Text, Image, ScrollView, View } from "react-native";
 import { icons } from "../../../constants/icon";
 import { images } from "../../../constants/index";
 import InputField from "../../../components/InputField";
 import { useState } from "react";
 import CustomButton from "../../../components/CustomButton";
-import { Link, router, type Href } from "expo-router";
-import OAuth from "../../../components/OAuth";
-import { useAuth, useSignUp } from "@clerk/expo";
+import { Link, router } from "expo-router";
+import { useAuth } from "../../../context/AuthContext";
+import { normalizeVietnamPhoneNumber } from "../../../utils/auth";
+import { showAlert } from "../../../utils/notify";
 
+// Đăng ký tài khoản khách hàng: gộp luôn họ tên, số điện thoại (trước đây ở màn complete-profile)
 const SignUp = () => {
   const goToSignIn = () => {
     router.replace("/(auth)/sign-in");
   };
 
-  const { isLoaded } = useAuth();
-  const { signUp } = useSignUp();
-  const [form, setForm] = useState({ emailAddress: "", password: "" });
-  const [code, setCode] = useState("");
-  const [isVerifying, setIsVerifying] = useState(false);
+  const { signUp } = useAuth();
+  const [form, setForm] = useState({ fullName: "", phone: "", emailAddress: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSignUp = async () => {
+    const fullName = form.fullName.trim();
     const emailAddress = form.emailAddress.trim().toLowerCase();
+
+    if (!fullName) {
+      showAlert("Thiếu họ tên", "Vui lòng nhập họ và tên của bạn.");
+      return;
+    }
+    if (!normalizeVietnamPhoneNumber(form.phone)) {
+      showAlert("Số điện thoại không hợp lệ", "Vui lòng nhập số điện thoại di động Việt Nam gồm 10 số.");
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailAddress)) {
-      Alert.alert("Email không hợp lệ", "Vui lòng nhập địa chỉ email hợp lệ.");
+      showAlert("Email không hợp lệ", "Vui lòng nhập địa chỉ email hợp lệ.");
       return;
     }
-    if (form.password.length < 8) {
-      Alert.alert("Mật khẩu chưa hợp lệ", "Mật khẩu phải có ít nhất 15 ký tự.");
-      return;
-    }
-    if (!isLoaded) return;
-
-    setIsSubmitting(true);
-    try {
-      const { error } = await signUp.password({
-        emailAddress,
-        password: form.password,
-        unsafeMetadata: { role: "customer" },
-      });
-      if (error) {
-        Alert.alert("Không thể đăng ký", error.message);
-        return;
-      }
-
-      const { error: sendError } = await signUp.verifications.sendEmailCode();
-      if (sendError) {
-        Alert.alert("Không thể gửi mã xác minh", sendError.message);
-        return;
-      }
-      setIsVerifying(true);
-    } catch (error) {
-      Alert.alert("Lỗi đăng ký", error instanceof Error ? error.message : "Vui lòng thử lại.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerify = async () => {
-    if (!/^\d{6}$/.test(code)) {
-      Alert.alert("Mã xác minh không hợp lệ", "Vui lòng nhập mã gồm 6 chữ số.");
+    if (form.password.length < 6) {
+      showAlert("Mật khẩu chưa hợp lệ", "Mật khẩu phải có ít nhất 6 ký tự.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const { error } = await signUp.verifications.verifyEmailCode({ code });
-      if (error) {
-        Alert.alert("Xác minh không thành công", error.message);
-        return;
-      }
-
-      const { error: finalizeError } = await signUp.finalize();
-      if (finalizeError) {
-        Alert.alert("Không thể hoàn tất đăng ký", finalizeError.message);
-        return;
-      }
-      router.replace("/(auth)/complete-profile" as Href);
+      // POST /api/auth/register → server tạo tài khoản role "customer" và trả token (đăng nhập luôn)
+      await signUp({ fullName, phone: form.phone, email: emailAddress, password: form.password });
+      router.replace("/");
     } catch (error) {
-      Alert.alert("Lỗi xác minh", error instanceof Error ? error.message : "Vui lòng thử lại.");
+      // Ví dụ: "Email này đã được sử dụng", "Số điện thoại này đã được sử dụng"
+      showAlert("Không thể đăng ký", error instanceof Error ? error.message : "Vui lòng thử lại.");
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  if (!isLoaded) {
-    return null;
-  }
-
-  if (isVerifying) {
-    return (
-      <View className="flex-1 bg-white p-5 justify-center">
-        <Text className="text-2xl text-black font-JakartaSemiBold mb-3">Xác minh email</Text>
-        <Text className="text-base text-general-200 mb-4">Nhập mã xác minh được gửi đến email của bạn.</Text>
-        <InputField
-          label="Mã xác minh"
-          placeholder="Nhập mã 6 chữ số"
-          value={code}
-          onChangeText={setCode}
-          keyboardType="number-pad"
-          maxLength={6}
-        />
-        <CustomButton title={isSubmitting ? "Đang xác minh..." : "Xác minh"} onPress={handleVerify} disabled={isSubmitting} className="mt-6" />
-      </View>
-    );
-  }
 
   return (
     <ScrollView className="flex-1 bg-white">
@@ -118,6 +65,24 @@ const SignUp = () => {
 
         <View className="p-5">
           <InputField
+            label="Họ và tên"
+            placeholder="Nhập họ và tên"
+            icon={icons.person}
+            value={form.fullName}
+            onChangeText={(fullName) => setForm({ ...form, fullName })}
+            textContentType="name"
+            autoCapitalize="words"
+          />
+          <InputField
+            label="Số điện thoại"
+            placeholder="Nhập số điện thoại"
+            icon={icons.person}
+            value={form.phone}
+            onChangeText={(phone) => setForm({ ...form, phone })}
+            keyboardType="phone-pad"
+            maxLength={10}
+          />
+          <InputField
             label="Email"
             placeholder="Nhập email"
             icon={icons.person}
@@ -129,7 +94,7 @@ const SignUp = () => {
           />
           <InputField
             label="mật khẩu"
-            placeholder="Nhập mật khẩu"
+            placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
             icon={icons.lock}
             secureTextEntry={true}
             textContentType="password"
@@ -144,7 +109,6 @@ const SignUp = () => {
             className="mt-6"
           />
 
-          <OAuth />
           <CustomButton
             title="Đăng nhập với kỹ thuật viên"
             onPress={goToSignIn}
