@@ -13,6 +13,10 @@ import backarrow from "../assets/icons/back-arrow.png";
 import payment from "../assets/icons/payment.png";
 import sale from "../assets/icons/sale.png";
 import location from "../assets/icons/pin.png"
+import dolar from "../assets/icons/dollar.png"
+import total from "../assets/icons/total.png"
+import pending from "../assets/icons/pedding.png"
+import donePay from "../assets/icons/donePay.png"
 
 export const icons = {
     home,
@@ -30,6 +34,10 @@ export const icons = {
     payment,
     sale,
     location,
+    dolar,
+    pending,
+    total,
+    donePay,
 } as const;
 
 export type IconKey = keyof typeof icons;

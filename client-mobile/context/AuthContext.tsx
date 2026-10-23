@@ -10,6 +10,7 @@ export type AuthUser = {
   email?: string;
   phone?: string; // dạng 10 số, ví dụ 0901234567
   role: UserRole;
+  technicianApprovalStatus?: "pending" | "approved";
   mustChangePassword?: boolean;
 };
 
@@ -28,6 +29,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   signIn: (account: string, password: string) => Promise<AuthUser>;
   signUp: (data: SignUpData) => Promise<AuthUser>;
+  signUpTechnician: (data: SignUpData) => Promise<AuthUser>;
   signOut: () => Promise<void>;
   updateProfile: (data: { fullName?: string; phone?: string }) => Promise<AuthUser>;
 };
@@ -87,6 +89,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return handleAuthResult(result);
   };
 
+  // Kỹ thuật viên chỉ gửi hồ sơ; tài khoản chưa được đăng nhập cho tới khi admin duyệt
+  const signUpTechnician = async (data: SignUpData) => {
+    const result = await apiRequest<{ user: AuthUser }>("/auth/register-technician", {
+      method: "POST",
+      body: data,
+    });
+    return result.user;
+  };
+
   // JWT không cần báo server khi đăng xuất: chỉ cần xóa token trên máy
   const signOut = async () => {
     await removeToken();
@@ -102,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ isLoaded, isSignedIn: !!user, user, signIn, signUp, signOut, updateProfile }}
+      value={{ isLoaded, isSignedIn: !!user, user, signIn, signUp, signUpTechnician, signOut, updateProfile }}
     >
       {children}
     </AuthContext.Provider>

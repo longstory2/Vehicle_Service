@@ -3,21 +3,16 @@ import banner1 from "../assets/images/banner-1.png";
 import banner2 from "../assets/images/banner-2.png";
 import banner3 from "../assets/images/banner-3.png";
 import signUpCar from "../assets/images/signup-car.png";
-
+import QR from "../assets/images/QR Thanh Toan.png"
 
 export const images = {
   onboarding1,
   banner1,
   banner2,
   banner3,
+  QR,
   signUpCar,
 };
-
-export const user = {
-
-}
-
-
 
 export const banner = [
   {
