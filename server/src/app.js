@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
+import technicianRoutes from "./routes/technicianRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -27,6 +28,7 @@ app.get("/api/health", (req, res) => {
 // ===== Các route nghiệp vụ =====
 app.use("/api/auth", authRoutes);
 app.use("/api/services", serviceRoutes);
+app.use("/api/technicians", technicianRoutes);
 
 // ===== Xử lý lỗi (luôn đặt CUỐI CÙNG, sau mọi route) =====
 app.use(notFound);

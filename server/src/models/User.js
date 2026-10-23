@@ -20,6 +20,11 @@ const userSchema = new mongoose.Schema(
       enum: ["customer", "technician", "admin"],
       default: "customer",
     },
+    technicianApprovalStatus: {
+      type: String,
+      enum: ["pending", "approved"],
+      default: "approved",
+    },
 
     // Admin khóa tài khoản vi phạm
     isLocked: { type: Boolean, default: false },

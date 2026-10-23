@@ -41,7 +41,7 @@ const seed = async () => {
   }
 
   // 2. Tạo tài khoản mẫu để thử app mobile (chỉ tạo khi chưa có)
-  // Kỹ thuật viên chưa có màn hình tạo trên Admin Web (Giai đoạn 5) nên tạm tạo ở đây
+  // Tạo sẵn tài khoản kỹ thuật viên mẫu đã được duyệt để thử app mobile
   const sampleUsers = [
     { fullName: "Kỹ thuật viên Mẫu", email: "ktv@vehicle.vn", phone: "0901111111", role: "technician", password: "Ktv@123" },
     { fullName: "Khách hàng Mẫu", email: "khach@vehicle.vn", phone: "0902222222", role: "customer", password: "Khach@123" },

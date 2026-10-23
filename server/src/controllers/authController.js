@@ -9,12 +9,13 @@ const toPublicUser = (user) => ({
   email: user.email,
   phone: user.phone,
   role: user.role,
+  technicianApprovalStatus: user.technicianApprovalStatus,
   mustChangePassword: user.mustChangePassword,
 });
 
 // POST /api/auth/register - Khách hàng tự đăng ký tài khoản trên app mobile
 // Body: { "fullName": "...", "phone": "0901234567", "email": "...", "password": "..." }
-// Kỹ thuật viên KHÔNG tự đăng ký: do admin tạo tài khoản (Giai đoạn 5)
+// Hồ sơ kỹ thuật viên dùng endpoint riêng để bắt buộc chờ admin phê duyệt
 export const register = async (req, res) => {
   const { fullName, phone, email, password } = req.body;
 
@@ -48,6 +49,42 @@ export const register = async (req, res) => {
   });
 };
 
+// POST /api/auth/register-technician - Ứng viên gửi hồ sơ để admin duyệt
+export const registerTechnician = async (req, res) => {
+  const { fullName, phone, email, password } = req.body;
+  const normalizedEmail = email ? String(email).trim().toLowerCase() : "";
+  const normalizedPhone = normalizePhone(phone);
+
+  if (!fullName || !String(fullName).trim()) {
+    return res.status(400).json({ success: false, message: "Vui lòng nhập họ tên" });
+  }
+  if (!normalizedPhone) {
+    return res.status(400).json({ success: false, message: "Số điện thoại không hợp lệ" });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return res.status(400).json({ success: false, message: "Email không hợp lệ" });
+  }
+  if (!password || String(password).length < 6) {
+    return res.status(400).json({ success: false, message: "Mật khẩu phải có ít nhất 6 ký tự" });
+  }
+
+  const user = new User({
+    fullName,
+    phone: normalizedPhone,
+    email: normalizedEmail,
+    role: "technician",
+    technicianApprovalStatus: "pending",
+  });
+  await user.setPassword(password);
+  await user.save();
+
+  res.status(201).json({
+    success: true,
+    message: "Đã gửi hồ sơ kỹ thuật viên. Vui lòng chờ quản trị viên phê duyệt.",
+    data: { user: toPublicUser(user) },
+  });
+};
+
 // POST /api/auth/login
 // Body: { "account": "email hoặc số điện thoại", "password": "..." }
 export const login = async (req, res) => {
@@ -71,6 +108,13 @@ export const login = async (req, res) => {
 
   if (user.isLocked) {
     return res.status(403).json({ success: false, message: "Tài khoản đã bị khóa" });
+  }
+
+  if (user.role === "technician" && user.technicianApprovalStatus !== "approved") {
+    return res.status(403).json({
+      success: false,
+      message: "Hồ sơ kỹ thuật viên đang chờ quản trị viên phê duyệt.",
+    });
   }
 
   res.json({
