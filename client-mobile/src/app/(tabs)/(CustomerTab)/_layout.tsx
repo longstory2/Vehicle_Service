@@ -22,20 +22,13 @@ const TabLayout = () => (
         }} />
         <Tabs.Screen name="book" options={{
             title: 'Đơn đặt',
+            tabBarIcon: () => <TabIcon source={icons.book} />,
             tabBarStyle: { display: "none" },
-            tabBarIcon: () => <TabIcon source={icons.book} />
         }} />
         <Tabs.Screen name="account" options={{
             title: 'Tài khoản',
             tabBarIcon: () => <TabIcon source={icons.profile} />
         }} />
-        {/* <Tabs.Screen
-            name="bill"
-            options={{
-                title: "Hóa đơn",
-                tabBarIcon: () => <TabIcon source={icons.payment} />,
-            }}
-        /> */}
     </Tabs>
 )
 

@@ -1,27 +1,8 @@
 import { useRef, useState } from "react";
-import {
-    ActivityIndicator,
-    Alert,
-    ImageSourcePropType,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-    Image,
-    useWindowDimensions,
-} from "react-native";
+import { ActivityIndicator, Alert, ImageSourcePropType, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Image, useWindowDimensions, } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
-import {
-    bookingPreview,
-    serviceCategories,
-    serviceEstimatedPrices,
-    spareParts,
-    vehicleMakes,
-    vehicleTypes,
-} from "../../../../constants/data";
+import { serviceCategories, serviceEstimatedPrices, spareParts, vehicleMakes, vehicleTypes, } from "../../../../constants/data";
 import LeafletMap from "../../../../components/LeafletMap";
 import { icons } from "../../../../constants/icon";
 const TabIcon = ({ source }: { source: ImageSourcePropType }) => (
@@ -36,6 +17,7 @@ type BookingParams = {
     vehicleTypeId?: string | string[];
     vehicleMakeId?: string | string[];
     plate?: string | string[];
+    serviceName?: string | string[];
     sparePartId?: string | string[];
     mileage?: string | string[];
     description?: string | string[];
@@ -63,6 +45,7 @@ const BookScreen = () => {
     const vehicleTypeId = readParam(params.vehicleTypeId);
     const vehicleMakeId = readParam(params.vehicleMakeId);
     const plate = readParam(params.plate);
+    const serviceName = readParam(params.serviceName);
     const sparePartId = readParam(params.sparePartId);
     const mileage = readParam(params.mileage);
     const description = readParam(params.description);
@@ -74,26 +57,25 @@ const BookScreen = () => {
         ? selectedPrice
         : selectedSparePart?.estimatedPrice
         ?? serviceEstimatedPrices[categoryId]
-        ?? bookingPreview.estimatedPrice;
+        ?? 0;
 
     const vehicleRows = [
         {
             label: "Loại xe",
-            value: vehicleTypes.find((item) => item.id === vehicleTypeId)?.label
-                ?? bookingPreview.vehicleInfo[0].value,
+            value: vehicleTypes.find((item) => item.id === vehicleTypeId)?.label ?? "Chưa có loại xe",
         },
         {
             label: "Hãng xe",
-            value: vehicleMakes.find((item) => item.id === vehicleMakeId)?.label
-                ?? bookingPreview.vehicleInfo[1].value,
+            value: vehicleMakes.find((item) => item.id === vehicleMakeId)?.label ?? "Chưa có hãng xe",
         },
         {
             label: "Biển số xe",
-            value: plate || bookingPreview.vehicleInfo[2].value,
+            value: plate || "Chưa có biển số",
         },
     ];
     const serviceRows = [
-        { label: "Loại dịch vụ", value: selectedCategory?.title ?? bookingPreview.serviceInfo[0].value },
+        { label: "Loại dịch vụ", value: selectedCategory?.title ?? "Chưa có loại dịch vụ" },
+        ...(serviceName ? [{ label: "Dịch vụ cần thực hiện", value: serviceName }] : []),
         ...(selectedSparePart ? [{ label: "Phụ tùng", value: selectedSparePart.label }] : []),
         ...(mileage ? [{ label: "Số Km hiện tại", value: `${mileage} km` }] : []),
         { label: "Mô tả", value: description || "Chưa có mô tả" },
