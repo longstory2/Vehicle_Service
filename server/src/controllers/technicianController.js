@@ -35,3 +35,35 @@ export const approveTechnician = async (req, res) => {
     data: technician,
   });
 };
+
+export const getMyAvailability = async (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      // Tài khoản cũ chưa có trường này được xem là đang sẵn sàng.
+      isAcceptingOrders: req.user.isAcceptingOrders !== false,
+    },
+  });
+};
+
+export const updateMyAvailability = async (req, res) => {
+  const { isAcceptingOrders } = req.body;
+
+  if (typeof isAcceptingOrders !== "boolean") {
+    return res.status(400).json({
+      success: false,
+      message: "Trạng thái nhận đơn không hợp lệ",
+    });
+  }
+
+  req.user.isAcceptingOrders = isAcceptingOrders;
+  await req.user.save();
+
+  res.json({
+    success: true,
+    message: isAcceptingOrders
+      ? "Đã bật nhận đơn"
+      : "Đã tắt nhận đơn",
+    data: { isAcceptingOrders: req.user.isAcceptingOrders },
+  });
+};

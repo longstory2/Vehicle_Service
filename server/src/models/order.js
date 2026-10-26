@@ -47,6 +47,25 @@ const orderSchema = new mongoose.Schema(
             enum: ["PENDING", "ACCEPTED", "COMPLETED", "CANCELLED"],
             default: "PENDING",
         },
+        offers: [
+            {
+                _id: false,
+                technicianId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "User",
+                    required: true,
+                },
+                offeredAt: {
+                    type: Date,
+                    required: true,
+                },
+                response: {
+                    type: String,
+                    enum: ["PENDING", "ACCEPTED", "REJECTED", "EXPIRED"],
+                    default: "PENDING",
+                },
+            },
+        ],
         acceptedAt: {
             type: Date,
             default: null,

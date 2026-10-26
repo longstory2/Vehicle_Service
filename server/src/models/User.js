@@ -31,6 +31,12 @@ const userSchema = new mongoose.Schema(
 
     // Kỹ thuật viên do admin cấp tài khoản phải đổi mật khẩu ở lần đăng nhập đầu
     mustChangePassword: { type: Boolean, default: false },
+
+    //Lưu trạng thái sãn sàng của kỹ thuật viên
+    isAcceptingOrders: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );

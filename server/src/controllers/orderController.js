@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import Order from "../models/order.js";
 
+
+
 const readText = (value) =>
     typeof value === "string" ? value.trim() : "";
 
@@ -79,16 +81,107 @@ export const createOrder = async (req, res) => {
     });
 };
 
+const OFFER_DURATION_MS = 30_000;
+
 export const getAvailableOrders = async (req, res) => {
+    if (req.user.isAcceptingOrders === false) {
+        return res.json({ success: true, data: [] });
+    }
+
+    const cutoff = new Date(Date.now() - OFFER_DURATION_MS);
+
+    // Đánh dấu offer đã hết hạn với riêng kỹ thuật viên đang hỏi danh sách.
+    await Order.updateMany(
+        {
+            status: "PENDING",
+            offers: {
+                $elemMatch: {
+                    technicianId: req.user._id,
+                    response: "PENDING",
+                    offeredAt: { $lte: cutoff },
+                },
+            },
+        },
+        { $set: { "offers.$[offer].response": "EXPIRED" } },
+        {
+            arrayFilters: [
+                {
+                    "offer.technicianId": req.user._id,
+                    "offer.response": "PENDING",
+                    "offer.offeredAt": { $lte: cutoff },
+                },
+            ],
+        }
+    );
+
+    // Ghi offer lần đầu khi đơn được hiển thị cho kỹ thuật viên.
+    const newOrders = await Order.find({
+        status: "PENDING",
+        technicianId: null,
+        offers: {
+            $not: {
+                $elemMatch: { technicianId: req.user._id },
+            },
+        },
+    }).select("_id");
+
+    for (const order of newOrders) {
+        await Order.updateOne(
+            {
+                _id: order._id,
+                status: "PENDING",
+                technicianId: null,
+                offers: {
+                    $not: {
+                        $elemMatch: { technicianId: req.user._id },
+                    },
+                },
+            },
+            {
+                $push: {
+                    offers: {
+                        technicianId: req.user._id,
+                        offeredAt: new Date(),
+                        response: "PENDING",
+                    },
+                },
+            }
+        );
+    }
+
+    const activeCutoff = new Date(Date.now() - OFFER_DURATION_MS);
+
     const orders = await Order.find({
         status: "PENDING",
         technicianId: null,
+        offers: {
+            $elemMatch: {
+                technicianId: req.user._id,
+                response: "PENDING",
+                offeredAt: { $gt: activeCutoff },
+            },
+        },
     })
         .populate("customerId", "fullName phone")
         .sort({ createdAt: -1 })
         .lean();
 
-    res.json({ success: true, data: orders });
+    const data = orders.map((order) => {
+        const offer = order.offers.find(
+            (item) =>
+                item.technicianId.toString() === req.user._id.toString() &&
+                item.response === "PENDING"
+        );
+
+        return {
+            ...order,
+            offerExpiresAt: new Date(
+                new Date(offer.offeredAt).getTime() + OFFER_DURATION_MS
+            ).toISOString(),
+        };
+    });
+
+    res.json({ success: true, data });
 };
 
 export const getMyOrders = async (req, res) => {
@@ -101,6 +194,13 @@ export const getMyOrders = async (req, res) => {
 };
 
 export const acceptOrder = async (req, res) => {
+    if (req.user.isAcceptingOrders === false) {
+        return res.status(403).json({
+            success: false,
+            message: "Bạn đang tắt trạng thái nhận đơn",
+        });
+    }
+
     const { id } = req.params;
 
     if (!mongoose.isValidObjectId(id)) {
@@ -110,37 +210,86 @@ export const acceptOrder = async (req, res) => {
         });
     }
 
-    // Cập nhật có điều kiện để chỉ kỹ thuật viên đầu tiên nhận được đơn.
+    const cutoff = new Date(Date.now() - OFFER_DURATION_MS);
+
     const order = await Order.findOneAndUpdate(
         {
             _id: id,
             status: "PENDING",
             technicianId: null,
+            offers: {
+                $elemMatch: {
+                    technicianId: req.user._id,
+                    response: "PENDING",
+                    offeredAt: { $gt: cutoff },
+                },
+            },
         },
         {
             $set: {
                 status: "ACCEPTED",
                 technicianId: req.user._id,
                 acceptedAt: new Date(),
+                "offers.$.response": "ACCEPTED",
             },
         },
         { returnDocument: "after" }
     ).populate("customerId", "fullName phone");
 
     if (!order) {
-        const exists = await Order.exists({ _id: id });
-
-        return res.status(exists ? 409 : 404).json({
+        return res.status(409).json({
             success: false,
-            message: exists
-                ? "Đơn đã được kỹ thuật viên khác nhận hoặc không còn chờ xác nhận"
-                : "Không tìm thấy đơn hàng",
+            message: "Offer đã hết hạn hoặc đơn đã được kỹ thuật viên khác nhận",
         });
     }
 
     res.json({
         success: true,
         message: "Bạn đã nhận đơn hàng",
+        data: order,
+    });
+};
+
+// Hàm từ chối
+export const rejectOrder = async (req, res) => {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+        return res.status(400).json({
+            success: false,
+            message: "Mã đơn hàng không hợp lệ",
+        });
+    }
+
+    const cutoff = new Date(Date.now() - OFFER_DURATION_MS);
+
+    const order = await Order.findOneAndUpdate(
+        {
+            _id: id,
+            status: "PENDING",
+            technicianId: null,
+            offers: {
+                $elemMatch: {
+                    technicianId: req.user._id,
+                    response: "PENDING",
+                    offeredAt: { $gt: cutoff },
+                },
+            },
+        },
+        { $set: { "offers.$.response": "REJECTED" } },
+        { returnDocument: "after" }
+    );
+
+    if (!order) {
+        return res.status(409).json({
+            success: false,
+            message: "Offer đã hết hạn hoặc không còn khả dụng",
+        });
+    }
+
+    res.json({
+        success: true,
+        message: "Đã từ chối đơn này",
         data: order,
     });
 };
