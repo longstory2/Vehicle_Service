@@ -22,7 +22,10 @@ const TabLayout = () => (
         }} />
         <Tabs.Screen name="book" options={{
             title: 'Đơn đặt',
-            tabBarIcon: () => <TabIcon source={icons.book} />,
+            tabBarStyle: { display: "none" },
+        }} />
+        <Tabs.Screen name="acceptedDeal" options={{
+            title: 'Đơn đặt',
             tabBarStyle: { display: "none" },
         }} />
         <Tabs.Screen name="account" options={{
