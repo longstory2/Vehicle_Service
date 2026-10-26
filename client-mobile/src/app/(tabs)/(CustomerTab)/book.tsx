@@ -5,6 +5,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { serviceCategories, serviceEstimatedPrices, spareParts, vehicleMakes, vehicleTypes, } from "../../../../constants/data";
 import LeafletMap from "../../../../components/LeafletMap";
 import { icons } from "../../../../constants/icon";
+import { apiRequest } from "../../../../utils/api";
+
 const TabIcon = ({ source }: { source: ImageSourcePropType }) => (
     <View>
         <View>
@@ -58,21 +60,7 @@ const BookScreen = () => {
         : selectedSparePart?.estimatedPrice
         ?? serviceEstimatedPrices[categoryId]
         ?? 0;
-
-    const vehicleRows = [
-        {
-            label: "Loại xe",
-            value: vehicleTypes.find((item) => item.id === vehicleTypeId)?.label ?? "Chưa có loại xe",
-        },
-        {
-            label: "Hãng xe",
-            value: vehicleMakes.find((item) => item.id === vehicleMakeId)?.label ?? "Chưa có hãng xe",
-        },
-        {
-            label: "Biển số xe",
-            value: plate || "Chưa có biển số",
-        },
-    ];
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const serviceRows = [
         { label: "Loại dịch vụ", value: selectedCategory?.title ?? "Chưa có loại dịch vụ" },
         ...(serviceName ? [{ label: "Dịch vụ cần thực hiện", value: serviceName }] : []),
@@ -88,7 +76,20 @@ const BookScreen = () => {
     const [selectedOption, setSelectedOption] = useState("cash");
     const lastSearchAt = useRef(0);
     const mapHeight = height * 0.56;
-
+    const vehicleRows = [
+        {
+            label: "Loại xe",
+            value: vehicleTypes.find((item) => item.id === vehicleTypeId)?.label ?? "Chưa có loại xe",
+        },
+        {
+            label: "Hãng xe",
+            value: vehicleMakes.find((item) => item.id === vehicleMakeId)?.label ?? "Chưa có hãng xe",
+        },
+        {
+            label: "Biển số xe",
+            value: plate || "Chưa có biển số",
+        },
+    ];
     // Chỉ tra cứu khi khách chủ động bấm Tìm hoặc gửi từ bàn phím.
     const searchPickupLocation = async () => {
         const query = pickupAddress.trim();
@@ -147,16 +148,56 @@ const BookScreen = () => {
         Alert.alert("Định vị GPS", "Tích hợp lấy tọa độ thiết bị tại handler này.");
     };
 
-    const submitBooking = () => {
+    const submitBooking = async () => {
         if (!pickupLocation) {
-            Alert.alert("Chưa chọn điểm đón", "Nhập địa chỉ rồi bấm Tìm để hiển thị vị trí trên bản đồ.");
+            Alert.alert(
+                "Chưa chọn điểm đón",
+                "Nhập địa chỉ rồi bấm Tìm để hiển thị vị trí trên bản đồ."
+            );
             return;
         }
+        if (isSubmitting) return;
 
-        Alert.alert(
-            "Đặt đơn",
-            `Điểm đón: ${pickupLocation.address}\nTọa độ: ${pickupLocation.latitude}, ${pickupLocation.longitude}`,
-        );
+        setIsSubmitting(true);
+
+        try {
+            await apiRequest("/orders", {
+                method: "POST",
+                body: {
+                    serviceDetails: {
+                        category: selectedCategory?.title ?? "",
+                        serviceName,
+                        sparePart: selectedSparePart?.label ?? "",
+                        vehicleType:
+                            vehicleTypes.find((item) => item.id === vehicleTypeId)?.label ?? "",
+                        vehicleMake:
+                            vehicleMakes.find((item) => item.id === vehicleMakeId)?.label ?? "",
+                        plate,
+                        mileage,
+                        description,
+                    },
+                    address: pickupLocation.address,
+                    location: {
+                        latitude: pickupLocation.latitude,
+                        longitude: pickupLocation.longitude,
+                    },
+                    estimatedPrice,
+                    paymentMethod: selectedOption,
+                },
+            });
+
+            Alert.alert(
+                "Đã gửi đơn",
+                "Đơn hàng đang chờ kỹ thuật viên xác nhận."
+            );
+        } catch (error) {
+            Alert.alert(
+                "Không gửi được đơn",
+                error instanceof Error ? error.message : "Vui lòng thử lại."
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -274,10 +315,15 @@ const BookScreen = () => {
                         </View>
                         <Pressable
                             accessibilityRole="button"
-                            onPress={submitBooking}
+                            disabled={isSubmitting}
+                            onPress={() => void submitBooking()}
                             style={styles.orderButton}
                         >
-                            <Text style={styles.orderButtonText}>Đặt đơn</Text>
+                            {isSubmitting ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.orderButtonText}>Đặt đơn</Text>
+                            )}
                         </Pressable>
                     </View>
                 </View>
