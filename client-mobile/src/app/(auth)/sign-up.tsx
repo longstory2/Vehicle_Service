@@ -11,10 +11,6 @@ import { showAlert } from "../../../utils/notify";
 
 // Đăng ký tài khoản khách hàng: gộp luôn họ tên, số điện thoại (trước đây ở màn complete-profile)
 const SignUp = () => {
-  const goToSignIn = () => {
-    router.replace("/(auth)/sign-in");
-  };
-
   const { signUp } = useAuth();
   const [form, setForm] = useState({ fullName: "", phone: "", emailAddress: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,19 +104,22 @@ const SignUp = () => {
             disabled={isSubmitting}
             className="mt-6"
           />
-
-          <CustomButton
-            title="Đăng nhập với kỹ thuật viên"
-            onPress={goToSignIn}
-            className="mt-6"
-          />
           <Link
             href="/(auth)/sign-in"
-            className="text-lg text-center text-general-200 mt-10"
-          >
+            className="text-lg text-center text-general-200 mt-5">
             <Text>Đã có tài khoản? </Text>
             <Text className="text-blue-500">Đăng nhập</Text>
           </Link>
+          <CustomButton
+            title="Đăng nhập kỹ thuật viên"
+            onPress={() => router.replace("/(auth)/sign-in")}
+            className="mt-6"
+          />
+          <CustomButton
+            title="Đăng ký làm kỹ thuật viên"
+            onPress={() => router.replace("/(auth)/TechSignUp")}
+            className="mt-6"
+          />
         </View>
       </View>
     </ScrollView>

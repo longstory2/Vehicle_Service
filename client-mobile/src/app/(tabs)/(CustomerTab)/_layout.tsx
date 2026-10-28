@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Stack, Tabs } from "expo-router";
 import { Image, View, type ImageSourcePropType } from "react-native";
 import { icons } from "../../../../constants/icon";
 const TabIcon = ({ source }: { source: ImageSourcePropType }) => (
@@ -23,7 +23,10 @@ const TabLayout = () => (
         <Tabs.Screen name="book" options={{
             title: 'Đơn đặt',
             tabBarStyle: { display: "none" },
-            tabBarIcon: () => <TabIcon source={icons.book} />
+        }} />
+        <Tabs.Screen name="acceptedDeal" options={{
+            title: 'Đơn đặt',
+            tabBarStyle: { display: "none" },
         }} />
         <Tabs.Screen name="account" options={{
             title: 'Tài khoản',

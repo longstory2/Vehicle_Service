@@ -20,12 +20,23 @@ const userSchema = new mongoose.Schema(
       enum: ["customer", "technician", "admin"],
       default: "customer",
     },
+    technicianApprovalStatus: {
+      type: String,
+      enum: ["pending", "approved"],
+      default: "approved",
+    },
 
     // Admin khóa tài khoản vi phạm
     isLocked: { type: Boolean, default: false },
 
     // Kỹ thuật viên do admin cấp tài khoản phải đổi mật khẩu ở lần đăng nhập đầu
     mustChangePassword: { type: Boolean, default: false },
+
+    //Lưu trạng thái sãn sàng của kỹ thuật viên
+    isAcceptingOrders: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );

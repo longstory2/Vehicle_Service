@@ -1,6 +1,7 @@
 import { useAuth } from "../../../../context/AuthContext";
 import { Redirect, router } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { apiRequest } from "../../../../utils/api";
 import { ActivityIndicator, Alert, ImageSourcePropType, Pressable, StyleSheet, Text, TextInput, View, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -42,19 +43,35 @@ const QuickAction = ({ icon, label, onPress }: QuickActionProps) => (
 
 const MechanicHome = () => {
     const { isLoaded, isSignedIn, user } = useAuth();
-
     const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
     const [pickupLocation, setPickupLocation] = useState<PickupLocation | null>(null);
     const [pickupAddress, setPickupAddress] = useState("");
     const [isSearchingLocation, setIsSearchingLocation] = useState(false);
     const [locationError, setLocationError] = useState("");
-
     const lastSearchAt = useRef(0);
+    const toggleAvailability = async () => {
+        const nextValue = !isAcceptingOrders;
 
+        try {
+            const result = await apiRequest<{ isAcceptingOrders: boolean }>(
+                "/technicians/availability",
+                {
+                    method: "PUT",
+                    body: { isAcceptingOrders: nextValue },
+                }
+            );
+
+            setIsAcceptingOrders(result.isAcceptingOrders);
+        } catch (error) {
+            Alert.alert(
+                "Không đổi được trạng thái",
+                error instanceof Error ? error.message : "Vui lòng thử lại."
+            );
+        }
+    };
     // Tìm địa chỉ chỉ khi người dùng bấm nút hoặc gửi từ bàn phím.
     const searchPickupLocation = async () => {
         const query = pickupAddress.trim();
-
         if (!query) {
             setLocationError("Nhập địa chỉ hoặc tên địa điểm trước khi tìm.");
             return;
@@ -142,6 +159,26 @@ const MechanicHome = () => {
         return <Redirect href="/(tabs)/(CustomerTab)/home" />;
     }
 
+    useEffect(() => {
+        let isMounted = true;
+
+        apiRequest<{ isAcceptingOrders: boolean }>("/technicians/availability")
+            .then((data) => {
+                if (isMounted) {
+                    setIsAcceptingOrders(data.isAcceptingOrders);
+                }
+            })
+            .catch((error) => {
+                Alert.alert(
+                    "Không tải được trạng thái",
+                    error instanceof Error ? error.message : "Vui lòng thử lại."
+                );
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
     return (
         <View style={styles.screen}>
             <View style={StyleSheet.absoluteFill}>
@@ -214,7 +251,7 @@ const MechanicHome = () => {
                         accessibilityLabel={
                             isAcceptingOrders ? "Tắt nhận đơn" : "Bật nhận đơn"
                         }
-                        onPress={() => setIsAcceptingOrders((current) => !current)}
+                        onPress={() => void toggleAvailability()}
                         style={styles.statusCard}
                     >
                         <View
@@ -236,7 +273,7 @@ const MechanicHome = () => {
                         <QuickAction
                             icon={icons.power}
                             label={isAcceptingOrders ? "Tắt nhận đơn" : "Bật nhận đơn"}
-                            onPress={() => setIsAcceptingOrders((current) => !current)}
+                            onPress={() => void toggleAvailability()}
                         />
                         <QuickAction icon={icons.book} label="Đơn đặt" onPress={openOrders} />
                         <QuickAction

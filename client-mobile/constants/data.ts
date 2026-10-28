@@ -36,14 +36,50 @@ export const vehicleTypes: CatalogOption[] = [
     { id: "car", label: "Ô tô" },
 ];
 
-export const vehicleMakes: CatalogOption[] = [
+export const motorcycleMakes: CatalogOption[] = [
     { id: "honda", label: "Honda" },
     { id: "yamaha", label: "Yamaha" },
     { id: "suzuki", label: "Suzuki" },
+    { id: "sym", label: "SYM" },
+    { id: "piaggio", label: "Piaggio" },
+    { id: "kymco", label: "Kymco" },
+    { id: "kawasaki", label: "Kawasaki" },
+    { id: "ducati", label: "Ducati" },
+    { id: "bmw-motorrad", label: "BMW Motorrad" },
+    { id: "royal-enfield", label: "Royal Enfield" },
     { id: "vinfast", label: "VinFast" },
-    { id: "toyota", label: "Toyota" },
     { id: "other", label: "Khác" },
 ];
+
+export const carMakes: CatalogOption[] = [
+    { id: "toyota", label: "Toyota" },
+    { id: "hyundai", label: "Hyundai" },
+    { id: "kia", label: "Kia" },
+    { id: "ford", label: "Ford" },
+    { id: "mitsubishi", label: "Mitsubishi" },
+    { id: "mazda", label: "Mazda" },
+    { id: "honda", label: "Honda" },
+    { id: "vinfast", label: "VinFast" },
+    { id: "mercedes-benz", label: "Mercedes-Benz" },
+    { id: "bmw", label: "BMW" },
+    { id: "lexus", label: "Lexus" },
+    { id: "suzuki", label: "Suzuki" },
+    { id: "nissan", label: "Nissan" },
+    { id: "isuzu", label: "Isuzu" },
+    { id: "peugeot", label: "Peugeot" },
+    { id: "subaru", label: "Subaru" },
+    { id: "volkswagen", label: "Volkswagen" },
+    { id: "audi", label: "Audi" },
+    { id: "volvo", label: "Volvo" },
+    { id: "mg", label: "MG" },
+    { id: "byd", label: "BYD" },
+    { id: "other", label: "Khác" },
+];
+
+// A combined list keeps existing booking screens able to resolve a selected make ID.
+export const vehicleMakes: CatalogOption[] = Array.from(
+    new Map([...motorcycleMakes, ...carMakes].map((make) => [make.id, make])).values(),
+);
 
 export type SparePartOption = CatalogOption & {
     vehicleTypeIds: string[];
@@ -94,6 +130,8 @@ export const data = {
     serviceCategories,
     vehicleTypes,
     vehicleMakes,
+    motorcycleMakes,
+    carMakes,
     spareParts,
     serviceEstimatedPrices,
     bookingPreview,

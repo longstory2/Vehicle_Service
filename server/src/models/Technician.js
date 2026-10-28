@@ -25,8 +25,8 @@ const technicianSchema = new mongoose.Schema(
       max: [50, "Bán kính tối đa là 50 km"],
     },
 
-    // Đang bật nhận đơn hay không (kỹ thuật viên bật/tắt trên app)
-    isOnline: { type: Boolean, default: false },
+    // Trạng thái bật/tắt nhận đơn KHÔNG lưu ở đây mà ở users.isAcceptingOrders
+    // (app mobile đang dùng qua API /api/technicians/availability)
 
     // Vị trí hiện tại theo chuẩn GeoJSON: coordinates = [kinh độ, vĩ độ] (chú ý: kinh độ đứng TRƯỚC)
     currentLocation: {

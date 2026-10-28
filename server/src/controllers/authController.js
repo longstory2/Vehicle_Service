@@ -110,27 +110,3 @@ export const updateMe = async (req, res) => {
   await user.save(); // save() chạy lại kiểm tra dữ liệu và ràng buộc trùng
   res.json({ success: true, message: "Đã cập nhật thông tin", data: toPublicUser(user) });
 };
-// PUT /api/auth/change-password - Người dùng tự đổi mật khẩu (cần token)
-// Body: { "currentPassword": "...", "newPassword": "..." }
-// Kỹ thuật viên dùng ở lần đăng nhập đầu (mustChangePassword = true)
-export const changePassword = async (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  if (!currentPassword || !newPassword) {
-    return res.status(400).json({ success: false, message: "Vui lòng nhập mật khẩu hiện tại và mật khẩu mới" });
-  }
-  if (String(newPassword).length < 6) {
-    return res.status(400).json({ success: false, message: "Mật khẩu mới phải có ít nhất 6 ký tự" });
-  }
-
-  // req.user không có passwordHash (select: false) → lấy lại kèm "+passwordHash" để so khớp
-  const user = await User.findById(req.user._id).select("+passwordHash");
-  if (!(await user.matchPassword(currentPassword))) {
-    return res.status(400).json({ success: false, message: "Mật khẩu hiện tại không đúng" });
-  }
-
-  await user.setPassword(newPassword);
-  user.mustChangePassword = false; // đã đổi → không bắt đổi nữa
-  await user.save();
-
-  res.json({ success: true, message: "Đã đổi mật khẩu" });
-};

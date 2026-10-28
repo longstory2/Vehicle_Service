@@ -1,28 +1,24 @@
 {
   "expo": {
-    "name": "Sửa xe",
+    "name": "client-mobile",
     "slug": "client-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "clientmobile",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#2F80ED"
-    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/adaptive-icon.png"
+      },
+      "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
+      "output": "server",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -30,13 +26,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "backgroundColor": "#208AEF",
+          "image": "./assets/images/splash.png",
+          "imageWidth": 76
         }
       ],
       [
@@ -44,17 +36,19 @@
         {
           "fonts": [
             "./assets/fonts/PlusJakartaSans-Bold.ttf",
-            "./assets/fonts/PlusJakartaSans-Bold.ttf",
             "./assets/fonts/PlusJakartaSans-ExtraBold.ttf",
             "./assets/fonts/PlusJakartaSans-ExtraLight.ttf",
             "./assets/fonts/PlusJakartaSans-Light.ttf",
             "./assets/fonts/PlusJakartaSans-Medium.ttf",
             "./assets/fonts/PlusJakartaSans-Regular.ttf",
-            "./assets/fonts/PlusJakartaSans-SemiBold.ttf"
+            "./assets/fonts/PlusJakartaSans-Italic.ttf",
+            "./assets/fonts/PlusJakartaSans-SemiBold.ttf",
+            "./assets/fonts/PlusJakartaSans-SemiBoldItalic.ttf"
           ]
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,

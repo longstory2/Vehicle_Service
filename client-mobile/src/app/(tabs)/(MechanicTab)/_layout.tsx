@@ -1,15 +1,7 @@
 import { Tabs } from "expo-router";
-import { Image, View, type ImageSourcePropType } from "react-native";
-import { icons } from "../../../../constants/icon";
-const TabIcon = ({ source }: { source: ImageSourcePropType }) => (
-    <View>
-        <View>
-            <Image source={source} className="w-7 h-7" />
-        </View>
-    </View>
-)
+import { useAudioPlayer } from "expo-audio";
 const TabLayout = () => (
-    <Tabs screenOptions={{ headerShown: false }}>
+    <Tabs screenOptions={{ headerShown: false, tabBarStyle: { display: "none" } }}>
         <Tabs.Screen name="home" />
         <Tabs.Screen name="haveBook" />
         <Tabs.Screen name="setting" />

@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
+import { Stack, SplashScreen } from "expo-router";
 import "../../global.css"
 // Đăng nhập bằng JWT của server (thay cho Clerk)
 import { AuthProvider } from "../../context/AuthContext";
@@ -10,7 +9,7 @@ import { AuthProvider } from "../../context/AuthContext";
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
+  const [loaded, fontError] = useFonts({
     "Jakarta-Bold": require("../../assets/fonts/PlusJakartaSans-Bold.ttf"),
     "Jakarta-ExtraBold": require("../../assets/fonts/PlusJakartaSans-ExtraBold.ttf"),
     "Jakarta-ExtraLight": require("../../assets/fonts/PlusJakartaSans-ExtraLight.ttf"),
@@ -21,12 +20,17 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (loaded || fontError) {
+      if (fontError) {
+        console.error("Failed to load custom fonts; continuing with system fonts.", fontError);
+      }
+      void SplashScreen.hideAsync().catch((error) => {
+        console.error("Failed to hide the splash screen.", error);
+      });
     }
-  }, [loaded]);
+  }, [loaded, fontError]);
 
-  if (!loaded) {
+  if (!loaded && !fontError) {
     return null;
   }
 

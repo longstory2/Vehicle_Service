@@ -1,17 +1,98 @@
-import { useState } from "react";
-import { Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View, } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TouchableOpacity, View, } from "react-native";
 import CustomButton from "../../../../components/CustomButton";
-import { serviceCategories, spareParts, vehicleMakes, vehicleTypes, type CatalogOption, } from "../../../../constants/data";
+import { carMakes, motorcycleMakes, serviceCategories, spareParts, vehicleMakes, vehicleTypes, type CatalogOption, } from "../../../../constants/data";
 import { images } from "../../../../constants/index";
 import { router } from "expo-router";
-import { FormInput } from "../../../../components/InputField"
+import { FormInput } from "../../../../components/InputField";
+import { apiRequest } from "../../../../utils/api";
 type ServiceCategory = (typeof serviceCategories)[number];
 type FormValues = Record<string, string>;
+
+type ServiceRecord = {
+    _id: string;
+    name: string;
+    description: string;
+    vehicleType: "motorbike" | "car";
+    price: number;
+    estimatedMinutes: number;
+};
+
+const DEFAULT_SERVICE_NAME = "Kiểm tra, chuẩn đoán tại chỗ";
 
 const service = () => {
     const [activeCategory, setActiveCategory] = useState<ServiceCategory | null>(null);
     const [values, setValues] = useState<FormValues>({});
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+    const [services, setServices] = useState<ServiceRecord[]>([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(true);
+    const [servicesError, setServicesError] = useState("");
+    const [reloadServices, setReloadServices] = useState(0);
+    const compatibleServices = services.filter((item) =>
+        !values.vehicleType || item.vehicleType === (values.vehicleType === "motorcycle" ? "motorbike" : values.vehicleType),
+    );
+    const defaultService = compatibleServices.find(
+        (item) => item.name.trim().toLocaleLowerCase("vi") === DEFAULT_SERVICE_NAME.toLocaleLowerCase("vi"),
+    );
+    const selectedService = compatibleServices.find((item) => item._id === values.serviceId);
+    const compatibleParts = spareParts.filter((item) =>
+        !values.vehicleType || item.vehicleTypeIds.includes(values.vehicleType),
+    );
+    const selectedPart = compatibleParts.find((item) => item.id === values.sparePartId);
+    const compatibleMakes = values.vehicleType === "motorcycle"
+        ? motorcycleMakes
+        : values.vehicleType === "car"
+            ? carMakes
+            : vehicleMakes;
+
+    useEffect(() => {
+        let isCurrent = true;
+
+        const loadServices = async () => {
+            setIsLoadingServices(true);
+            setServicesError("");
+            try {
+                const data = await apiRequest<ServiceRecord[]>("/services");
+                if (isCurrent) setServices(data);
+            } catch (error) {
+                if (isCurrent) {
+                    setServicesError(error instanceof Error ? error.message : "Không thể tải danh sách dịch vụ.");
+                }
+            } finally {
+                if (isCurrent) setIsLoadingServices(false);
+            }
+        };
+
+        void loadServices();
+        return () => {
+            isCurrent = false;
+        };
+    }, [reloadServices]);
+
+    // Select the preferred real API service after both the vehicle type and services are available.
+    useEffect(() => {
+        if (
+            !activeCategory
+            || activeCategory.id === "parts"
+            || !values.vehicleType
+            || isLoadingServices
+            || servicesError
+        ) {
+            return;
+        }
+
+        setValues((current) => {
+            const currentService = services.find((item) => item._id === current.serviceId);
+            const vehicleType = current.vehicleType === "motorcycle" ? "motorbike" : current.vehicleType;
+            if (currentService?.vehicleType === vehicleType) return current;
+
+            const preferredService = services.find(
+                (item) => item.vehicleType === vehicleType
+                    && item.name.trim().toLocaleLowerCase("vi") === DEFAULT_SERVICE_NAME.toLocaleLowerCase("vi"),
+            );
+            return { ...current, serviceId: preferredService?._id ?? "" };
+        });
+    }, [activeCategory, isLoadingServices, services, servicesError, values.vehicleType]);
 
     const openForm = (category: ServiceCategory) => {
         setActiveCategory(category);
@@ -27,12 +108,12 @@ const service = () => {
     const updateValue = (field: string, value: string) => {
         setValues((current) => {
             if (field === "vehicleType") {
-                const currentPart = spareParts.find((part) => part.id === current.sparePart);
-                const partIsCompatible = currentPart?.vehicleTypeIds.includes(value);
                 return {
                     ...current,
                     vehicleType: value,
-                    sparePart: partIsCompatible ? current.sparePart : "",
+                    vehicleMake: "",
+                    serviceId: "",
+                    sparePartId: "",
                 };
             }
 
@@ -43,24 +124,68 @@ const service = () => {
     const submitForm = () => {
         if (!activeCategory) return;
 
-        const requiredFields = activeCategory.id === "parts" ? ["vehicleType", "vehicleMake", "plate", "sparePart"]
-            : ["vehicleType", "vehicleMake", "plate", "mileage"];
+        const isPartsRequest = activeCategory.id === "parts";
+        if (!isPartsRequest && isLoadingServices) {
+            Alert.alert("Đang tải dịch vụ", "Vui lòng chờ tải xong danh sách dịch vụ rồi thử lại.");
+            return;
+        }
+        if (!isPartsRequest && servicesError) {
+            Alert.alert("Không thể tải dịch vụ", "Vui lòng tải lại danh sách dịch vụ trước khi tiếp tục.");
+            return;
+        }
+
+        const requiredFields = ["vehicleType", "vehicleMake", "plate"];
+        if (isPartsRequest) {
+            requiredFields.push("sparePartId");
+        } else {
+            requiredFields.push("serviceId", "mileage");
+        }
+        if (activeCategory.id === "other") requiredFields.push("description");
 
         if (requiredFields.some((field) => !values[field]?.trim())) {
             Alert.alert("Thiếu thông tin", "Vui lòng điền đầy đủ các trường bắt buộc.");
             return;
         }
 
-        const selectedSparePart = spareParts.find((part) => part.id === values.sparePart);
+        if (isPartsRequest) {
+            const part = spareParts.find(
+                (item) => item.id === values.sparePartId && item.vehicleTypeIds.includes(values.vehicleType),
+            );
+            if (!part) {
+                Alert.alert("Phụ tùng không hợp lệ", "Vui lòng chọn phụ tùng phù hợp với loại xe.");
+                return;
+            }
+
+            const params = {
+                categoryId: activeCategory.id,
+                vehicleTypeId: values.vehicleType,
+                vehicleMakeId: values.vehicleMake,
+                plate: values.plate.trim(),
+                sparePartId: part.id,
+                mileage: "",
+                description: values.description?.trim() || "",
+                estimatedPrice: String(part.estimatedPrice),
+            };
+            closeForm();
+            router.push({ pathname: "/(tabs)/(CustomerTab)/book", params });
+            return;
+        }
+
+        const service = services.find((item) => item._id === values.serviceId);
+        if (!service || service.vehicleType !== (values.vehicleType === "motorcycle" ? "motorbike" : values.vehicleType)) {
+            Alert.alert("Dịch vụ không hợp lệ", "Vui lòng chọn dịch vụ phù hợp với loại xe.");
+            return;
+        }
         const params = {
             categoryId: activeCategory.id,
             vehicleTypeId: values.vehicleType,
             vehicleMakeId: values.vehicleMake,
             plate: values.plate.trim(),
-            sparePartId: values.sparePart || "",
+            serviceId: service._id,
+            serviceName: service.name,
             mileage: values.mileage?.trim() || "",
             description: values.description?.trim() || "",
-            estimatedPrice: String(selectedSparePart?.estimatedPrice ?? ""),
+            estimatedPrice: String(service.price),
         };
 
         closeForm();
@@ -128,7 +253,49 @@ const service = () => {
                     </TouchableOpacity>
                 ))}
             </View>
-
+            <View className="bg-white px-4 pb-5">
+                <Text className="mb-3 text-lg font-Jakarta-Bold text-black">
+                    Dịch vụ hiện có
+                </Text>
+                {isLoadingServices ? (
+                    <View className="flex-row items-center py-3">
+                        <ActivityIndicator color="#2795c8" />
+                        <Text className="ml-2 text-[#666]">Đang tải dịch vụ...</Text>
+                    </View>
+                ) : servicesError ? (
+                    <View className="rounded-xl bg-[#fff1f0] p-4">
+                        <Text className="text-[#b42318]">{servicesError}</Text>
+                        <TouchableOpacity
+                            accessibilityRole="button"
+                            onPress={() => setReloadServices((current) => current + 1)}
+                            className="mt-3 self-start"
+                        >
+                            <Text className="font-Jakarta-Bold text-[#1677a8]">Thử lại</Text>
+                        </TouchableOpacity>
+                    </View>
+                ) : services.length === 0 ? (
+                    <Text className="py-3 text-[#666]">Hiện chưa có dịch vụ nào.</Text>
+                ) : (
+                    services.map((item) => (
+                        <View key={item._id} className="mb-2 rounded-xl border border-neutral-200 bg-white p-4">
+                            <View className="flex-row items-start justify-between">
+                                <Text className="flex-1 pr-3 text-[16px] font-Jakarta-Bold text-black">
+                                    {item.name}
+                                </Text>
+                                <Text className="font-Jakarta-Bold text-[#1677a8]">
+                                    {item.price.toLocaleString("vi-VN")} đ
+                                </Text>
+                            </View>
+                            <Text className="mt-1 text-sm text-[#666]">
+                                {item.vehicleType === "motorbike" ? "Xe máy" : "Ô tô"} · {item.estimatedMinutes} phút
+                            </Text>
+                            {item.description ? (
+                                <Text className="mt-1 text-sm text-[#666]">{item.description}</Text>
+                            ) : null}
+                        </View>
+                    ))
+                )}
+            </View>
             <Modal
                 visible={activeCategory !== null}
                 transparent
@@ -157,10 +324,89 @@ const service = () => {
                         <ScrollView
                             keyboardShouldPersistTaps="handled"
                             showsVerticalScrollIndicator={false}
-                            contentContainerStyle={{ paddingBottom: 8 }}
-                        >
+                            contentContainerStyle={{ paddingBottom: 8 }}>
                             {renderSelect("vehicleType", "Loại xe", vehicleTypes)}
-                            {renderSelect("vehicleMake", "Hãng xe", vehicleMakes)}
+                            {values.vehicleType ? (
+                                <>
+                                    {activeCategory?.id === "parts" ? (
+                                        <>
+                                            {renderSelect(
+                                                "sparePartId",
+                                                "Phụ tùng cần thay",
+                                                compatibleParts.map(({ id, label }) => ({ id, label })),
+                                            )}
+                                            {compatibleParts.length === 0 ? (
+                                                <Text className="mb-3 text-sm text-[#b42318]">
+                                                    Không có phụ tùng nào phù hợp với loại xe này.
+                                                </Text>
+                                            ) : null}
+                                            {selectedPart ? (
+                                                <View className="mb-3 rounded-xl bg-[#eaf7fc] p-3">
+                                                    <Text className="font-Jakarta-Bold text-[#1677a8]">
+                                                        Giá dự kiến: {selectedPart.estimatedPrice.toLocaleString("vi-VN")} đ
+                                                    </Text>
+                                                </View>
+                                            ) : null}
+                                        </>
+                                    ) : (
+                                        <>
+                                            {compatibleServices.length > 0
+                                                ? renderSelect(
+                                                    "serviceId",
+                                                    "Dịch vụ cần thực hiện",
+                                                    compatibleServices.map((item) => ({
+                                                        id: item._id,
+                                                        label: item.name,
+                                                    })),
+                                                )
+                                                : null}
+                                            {compatibleServices.length > 0 && !isLoadingServices && !servicesError && !defaultService ? (
+                                                <Text className="mb-3 text-sm text-[#b42318]">
+                                                    Không tìm thấy dịch vụ mặc định “{DEFAULT_SERVICE_NAME}” cho loại xe này.
+                                                    {" "}Vui lòng chọn dịch vụ khác.
+                                                </Text>
+                                            ) : null}
+                                            {compatibleServices.length === 0 && !isLoadingServices && !servicesError ? (
+                                                <Text className="mb-3 text-sm text-[#b42318]">
+                                                    Không có dịch vụ nào phù hợp với loại xe này.
+                                                </Text>
+                                            ) : null}
+                                            {isLoadingServices ? (
+                                                <View className="mb-3 flex-row items-center">
+                                                    <ActivityIndicator size="small" color="#2795c8" />
+                                                    <Text className="ml-2 text-sm text-[#666]">Đang tải lựa chọn dịch vụ...</Text>
+                                                </View>
+                                            ) : null}
+                                            {servicesError ? (
+                                                <View className="mb-3 rounded-xl bg-[#fff1f0] p-3">
+                                                    <Text className="text-sm text-[#b42318]">{servicesError}</Text>
+                                                    <TouchableOpacity
+                                                        accessibilityRole="button"
+                                                        onPress={() => setReloadServices((current) => current + 1)}
+                                                        className="mt-2 self-start"
+                                                    >
+                                                        <Text className="font-Jakarta-Bold text-[#1677a8]">Tải lại</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            ) : null}
+                                            {selectedService ? (
+                                                <View className="mb-3 rounded-xl bg-[#eaf7fc] p-3">
+                                                    <Text className="font-Jakarta-Bold text-[#1677a8]">
+                                                        Giá dự kiến: {selectedService.price.toLocaleString("vi-VN")} đ
+                                                    </Text>
+                                                    <Text className="mt-1 text-sm text-[#555]">
+                                                        Thời gian dự kiến: {selectedService.estimatedMinutes} phút
+                                                    </Text>
+                                                    {selectedService.description ? (
+                                                        <Text className="mt-1 text-sm text-[#555]">{selectedService.description}</Text>
+                                                    ) : null}
+                                                </View>
+                                            ) : null}
+                                        </>
+                                    )}
+                                </>
+                            ) : null}
+                            {renderSelect("vehicleMake", "Hãng xe", compatibleMakes)}
                             <FormInput
                                 label="Biển số xe"
                                 required
@@ -168,15 +414,7 @@ const service = () => {
                                 onChangeText={(value) => updateValue("plate", value)}
                                 placeholder="Nhập biển số xe"
                             />
-                            {activeCategory?.id === "parts" ? (
-                                renderSelect(
-                                    "sparePart",
-                                    "Phụ tùng",
-                                    spareParts.filter((part) =>
-                                        !values.vehicleType || part.vehicleTypeIds.includes(values.vehicleType),
-                                    ),
-                                )
-                            ) : (
+                            {activeCategory?.id !== "parts" ? (
                                 <FormInput
                                     label="Số Km hiện tại"
                                     required
@@ -185,9 +423,10 @@ const service = () => {
                                     placeholder="Nhập số Km hiện tại"
                                     keyboardType="numeric"
                                 />
-                            )}
+                            ) : null}
                             <FormInput
                                 label="Mô tả"
+                                required={activeCategory?.id === "other"}
                                 value={values.description || ""}
                                 onChangeText={(value) => updateValue("description", value)}
                                 placeholder="Nhập mô tả"
