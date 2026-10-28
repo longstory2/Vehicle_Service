@@ -181,8 +181,8 @@ export default function Services() {
             {services.map((s) => (
               <TableRow key={s._id} hover>
                 <TableCell>
-                  <Typography fontWeight={500}>{s.name}</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                  <Typography sx={{ fontWeight: 500 }}>{s.name}</Typography>
                     {s.description}
                   </Typography>
                 </TableCell>
