@@ -149,7 +149,7 @@ const BookScreen = () => {
                     />
                 </View>
 
-                <View pointerEvents="box-none" className="absolute top-0 left-0 right-0 flex-row items-center gap-3 px-4">
+                <View pointerEvents="box-none" className="absolute top-0 left-0 right-0 z-10 flex-row items-center gap-2 p-4 pt-12">
                     <BackButton />
                     <Text className="rounded-[18px] bg-white px-3.5 py-2.5 text-base font-bold text-[#111111] shadow-md">
                         Đơn của bạn
@@ -192,7 +192,7 @@ const BookScreen = () => {
                         </View>
                     }>
                     {activeOrder.technicianId ? (
-                        <View className="mb-3 border-b-8 border-[#eeeeee] pb-3">
+                        <View className="mb-3">
 
                             <View className="mx-[-22px] mb-3 h-[7px] bg-[#e7e7e7]" />
 
@@ -222,16 +222,17 @@ const BookScreen = () => {
                                         }
                                     }}
                                     disabled={!activeOrder.technicianId.phone}
-                                    className="items-center"
-                                >
+                                    className="items-center">
                                     <View className="h-12 w-12 items-center justify-center rounded-full bg-[#eeeeee]">
                                         <Image source={icons.message} className="h-7 w-7" resizeMode="contain" />
                                     </View>
                                     <Text className="mt-1 text-[16px] font-bold text-[#111111]">Nhắn tin</Text>
                                 </Pressable>
                             </View>
+                            <View className="mx-[-22px] mt-3 h-[7px] bg-[#e7e7e7]" />
                         </View>
                     ) : null}
+
                     {trackingError ? (
                         <Text accessibilityRole="alert" className="mb-3 text-sm text-[#b42318]">
                             {trackingError}

@@ -2,7 +2,7 @@ import { useAuth } from "../../../../context/AuthContext";
 import { Redirect, router, useFocusEffect, useNavigation } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiRequest } from "../../../../utils/api";
-import { ActivityIndicator, Alert, ImageSourcePropType, Pressable, Text, TextInput, View, Image, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, ImageSourcePropType, Pressable, Text, TextInput, View, Image, useWindowDimensions, Linking } from "react-native";
 import * as Location from "expo-location";
 import LeafletMap from "../../../../components/LeafletMap";
 import { icons } from "../../../../constants/icon";
@@ -10,6 +10,7 @@ import DraggableOrderSheet from "../../../../components/DraggableOrderSheet";
 import InfoSection from "../../../../components/InfoSection";
 import { useLocationSearch, type PickupLocation } from "../../../../utils/useLocationSearch";
 import { isWithinHoChiMinhBounds } from "../../../../constants/serviceArea";
+import { spareParts } from "../../../../constants/data";
 
 type ActiveOrder = {
     _id: string;
@@ -37,7 +38,6 @@ type ActiveOrder = {
         response: "PENDING" | "ACCEPTED" | "REJECTED";
     };
     additionalParts?: { name: string; quantity: number; unitPrice: number }[];
-    technicianRating?: { score: number | null; comment: string };
     serviceDetails: {
         category?: string;
         serviceName?: string;
@@ -95,10 +95,15 @@ const MechanicHome = () => {
     const [partName, setPartName] = useState("");
     const [partQuantity, setPartQuantity] = useState("1");
     const [partUnitPrice, setPartUnitPrice] = useState("");
-    const [technicianRating, setTechnicianRating] = useState(5);
-    const [technicianReview, setTechnicianReview] = useState("");
+    const [selectedPartId, setSelectedPartId] = useState("");
     const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
     const lastOpenedAvailableOrderId = useRef<string | null>(null);
+    const availableParts = spareParts.filter((part) => {
+        const vehicleType = activeOrder?.serviceDetails.vehicleType;
+        if (!vehicleType) return true;
+        const normalizedVehicleType = vehicleType === "motorbike" ? "motorcycle" : vehicleType;
+        return part.vehicleTypeIds.includes(normalizedVehicleType);
+    });
     const toggleAvailability = async () => {
         const nextValue = !isAcceptingOrders;
 
@@ -191,8 +196,7 @@ const MechanicHome = () => {
                     const orders = await apiRequest<ActiveOrder[]>("/orders/mine");
                     if (isFocused) {
                         const active = orders.find((order) =>
-                            ["ACCEPTED", "ARRIVED", "INSPECTING", "AWAITING_PARTS_APPROVAL", "REPAIRING"].includes(order.status) ||
-                            (order.status === "COMPLETED" && !order.technicianRating?.score),
+                            ["ACCEPTED", "ARRIVED", "INSPECTING", "AWAITING_PARTS_APPROVAL", "REPAIRING"].includes(order.status),
                         );
                         if (active) {
                             setActiveOrder(active);
@@ -424,31 +428,16 @@ const MechanicHome = () => {
                 `/orders/${activeOrder._id}/complete`,
                 { method: "PUT" },
             );
-            setActiveOrder(completed);
+            setActiveOrder(null);
             setTechnicianLocation(null);
+            setIsOrderSheetExpanded(false);
+            router.push({
+                pathname: "/(tabs)/(MechanicTab)/bill",
+                params: { orderId: completed._id },
+            });
         } catch (error) {
             Alert.alert(
                 "Không hoàn thành được đơn",
-                error instanceof Error ? error.message : "Vui lòng thử lại.",
-            );
-        } finally {
-            setIsUpdatingOrder(false);
-        }
-    };
-
-    const submitTechnicianRating = async () => {
-        if (!activeOrder || isUpdatingOrder) return;
-        try {
-            setIsUpdatingOrder(true);
-            await apiRequest(`/orders/${activeOrder._id}/technician-rating`, {
-                method: "PUT",
-                body: { score: technicianRating, comment: technicianReview },
-            });
-            setActiveOrder(null);
-            setIsOrderSheetExpanded(false);
-        } catch (error) {
-            Alert.alert(
-                "Không gửi được đánh giá",
                 error instanceof Error ? error.message : "Vui lòng thử lại.",
             );
         } finally {
@@ -514,9 +503,11 @@ const MechanicHome = () => {
                     {orderError ? (
                         <Text accessibilityRole="alert" className="mb-3 text-sm text-[#b42318]">{orderError}</Text>
                     ) : null}
+
                     {trackingError ? (
                         <Text accessibilityRole="alert" className="mb-3 text-sm text-[#b42318]">{trackingError}</Text>
                     ) : null}
+
                     <InfoSection
                         title="Thông tin khách hàng"
                         icon={icons.person}
@@ -524,9 +515,49 @@ const MechanicHome = () => {
                         rows={[
                             { label: "Tên khách hàng", value: activeOrder.customerId?.fullName ?? "Khách hàng" },
                             { label: "Số điện thoại", value: activeOrder.customerId?.phone ?? "Chưa cung cấp" },
-                        ]}
-                    />
+                        ]} />
+
                     <View className="mx-[-22px] mb-3 h-[7px] bg-[#e7e7e7]" />
+
+                    {activeOrder.customerId ? (
+                        <View className="mb-3">
+                            <View className="mt-3 flex-row justify-center gap-12">
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Gọi kỹ thuật viên"
+                                    onPress={() => {
+                                        if (activeOrder.customerId?.phone) {
+                                            void Linking.openURL(`tel:${activeOrder.customerId.phone}`);
+                                        }
+                                    }}
+                                    disabled={!activeOrder.customerId.phone}
+                                    className="items-center"
+                                >
+                                    <View className="h-12 w-12 items-center justify-center rounded-full bg-[#eeeeee]">
+                                        <Image source={icons.call} className="h-7 w-7" resizeMode="contain" />
+                                    </View>
+                                    <Text className="mt-1 text-[16px] font-bold text-[#111111]">Gọi khách hàng</Text>
+                                </Pressable>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Nhắn tin cho khách hàng"
+                                    onPress={() => {
+                                        if (activeOrder.customerId?.phone) {
+                                            void Linking.openURL(`sms:${activeOrder.customerId.phone}`);
+                                        }
+                                    }}
+                                    disabled={!activeOrder.customerId.phone}
+                                    className="items-center">
+                                    <View className="h-12 w-12 items-center justify-center rounded-full bg-[#eeeeee]">
+                                        <Image source={icons.message} className="h-7 w-7" />
+                                    </View>
+                                    <Text className="mt-1 text-[16px] font-bold text-[#111111]">Nhắn tin</Text>
+                                </Pressable>
+                            </View>
+                            <View className="mx-[-22px] mt-3 h-[7px] bg-[#e7e7e7]" />
+                        </View>
+                    ) : null}
+
                     <InfoSection title="Địa điểm" icon={icons.location} rows={[{ label: "Địa chỉ", value: activeOrder.address }]} />
                     <View className="mx-[-22px] mb-3 h-[7px] bg-[#e7e7e7]" />
                     <InfoSection
@@ -556,14 +587,47 @@ const MechanicHome = () => {
                     ) : null}
                     {activeOrder.status === "INSPECTING" ? (
                         <View className="mt-3 rounded-xl bg-[#f4f7fb] p-3.5">
-                            <Text className="mb-2 text-base font-bold text-[#111111]">Đang kiểm tra</Text>
-                            <TextInput
-                                accessibilityLabel="Tên phụ tùng cần thay"
-                                value={partName}
-                                onChangeText={setPartName}
-                                placeholder="Tên phụ tùng (nếu cần)"
-                                className="mb-2.5 min-h-[46px] rounded-lg border border-[#d0d5dd] bg-white px-3 text-[#111111]"
-                            />
+                            <Text className="mb-2 text-base font-bold text-[#111111]">Các dịch vụ</Text>
+                            <Text className="mb-2.5 text-[14px] text-[#555555]">Chọn phụ tùng cần thay</Text>
+                            <View className="mb-2.5 gap-2">
+                                {availableParts.map((part) => {
+                                    const isSelected = selectedPartId === part.id;
+                                    return (
+                                        <Pressable
+                                            key={part.id}
+                                            accessibilityRole="button"
+                                            accessibilityState={{ selected: isSelected }}
+                                            onPress={() => {
+                                                setSelectedPartId(part.id);
+                                                setPartName(part.id === "other" ? "" : part.label);
+                                                setPartUnitPrice(
+                                                    part.id === "other" ? "" : String(part.estimatedPrice),
+                                                );
+                                            }}
+                                            className={`min-h-[46px] flex-row items-center justify-between rounded-lg border px-3 ${isSelected
+                                                ? "border-[#16835d] bg-[#e8f5ef]"
+                                                : "border-[#d0d5dd] bg-white"
+                                                }`}
+                                        >
+                                            <Text className="text-[15px] text-[#111111]">{part.label}</Text>
+                                            <Text className="text-[14px] font-semibold text-[#555555]">
+                                                {part.estimatedPrice > 0
+                                                    ? `${part.estimatedPrice.toLocaleString("vi-VN")}đ`
+                                                    : "Tự nhập giá"}
+                                            </Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
+                            {selectedPartId === "other" ? (
+                                <TextInput
+                                    accessibilityLabel="Tên phụ tùng khác"
+                                    value={partName}
+                                    onChangeText={setPartName}
+                                    placeholder="Tên phụ tùng"
+                                    className="mb-2.5 min-h-[46px] rounded-lg border border-[#d0d5dd] bg-white px-3 text-[#111111]"
+                                />
+                            ) : null}
                             <View className="flex-row gap-2">
                                 <TextInput
                                     accessibilityLabel="Số lượng phụ tùng"
@@ -620,58 +684,6 @@ const MechanicHome = () => {
                         >
                             <Text className="text-base font-bold text-[#111111]">Hoàn thành đơn</Text>
                         </Pressable>
-                    ) : null}
-                    {activeOrder.status === "COMPLETED" ? (
-                        <View className="mt-3 rounded-xl bg-[#f4f7fb] p-3.5">
-                            <Text className="mb-2 text-base font-bold text-[#111111]">Đơn hoàn thành — hóa đơn</Text>
-                            <InfoSection
-                                title="Chi tiết giá"
-                                rows={[
-                                    { label: "Phí dịch vụ cơ bản", value: `${activeOrder.estimatedPrice.toLocaleString("vi-VN")}đ` },
-                                    ...(activeOrder.additionalParts ?? []).map((part) => ({
-                                        label: `${part.name} × ${part.quantity}`,
-                                        value: `${(part.unitPrice * part.quantity).toLocaleString("vi-VN")}đ`,
-                                    })),
-                                ]}
-                            />
-                            <Text className="mb-3 text-[15px] text-[#555555]">
-                                Tổng cộng: {(activeOrder.totalPrice ?? activeOrder.estimatedPrice).toLocaleString("vi-VN")}đ
-                            </Text>
-                            <Text className="mb-2 text-base font-bold text-[#111111]">Đánh giá khách hàng</Text>
-                            <View className="my-2 flex-row justify-center gap-2">
-                                {Array.from({ length: 5 }, (_, index) => {
-                                    const score = index + 1;
-                                    return (
-                                        <Pressable
-                                            key={score}
-                                            accessibilityRole="button"
-                                            accessibilityLabel={`${score} sao`}
-                                            onPress={() => setTechnicianRating(score)}
-                                        >
-                                            <Text className={`text-[32px] ${score <= technicianRating ? "text-[#ffb900]" : "text-[#9a9a9a]"}`}>
-                                                ★
-                                            </Text>
-                                        </Pressable>
-                                    );
-                                })}
-                            </View>
-                            <TextInput
-                                accessibilityLabel="Nhận xét về khách hàng"
-                                value={technicianReview}
-                                onChangeText={setTechnicianReview}
-                                placeholder="Nhận xét (không bắt buộc)"
-                                multiline
-                                className="mb-2.5 min-h-[90px] rounded-lg border border-[#d0d5dd] bg-white px-3 pb-3 pt-3 text-[#111111]"
-                            />
-                            <Pressable
-                                accessibilityRole="button"
-                                disabled={isUpdatingOrder}
-                                onPress={() => void submitTechnicianRating()}
-                                className="mt-2 items-center justify-center rounded-xl bg-[#80b5f8] py-4"
-                            >
-                                <Text className="text-base font-bold text-[#111111]">Gửi đánh giá khách hàng</Text>
-                            </Pressable>
-                        </View>
                     ) : null}
                 </DraggableOrderSheet>
             </View>

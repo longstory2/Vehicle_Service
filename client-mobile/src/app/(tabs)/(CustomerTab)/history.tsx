@@ -22,12 +22,6 @@ type Order = {
 };
 
 const statusLabels: Record<string, string> = {
-    PENDING: "Đang tìm kỹ thuật viên",
-    ACCEPTED: "Đã xác nhận",
-    ARRIVED: "Đã đến nơi",
-    INSPECTING: "Đang kiểm tra",
-    AWAITING_PARTS_APPROVAL: "Chờ duyệt phụ tùng",
-    REPAIRING: "Đang sửa chữa",
     COMPLETED: "Hoàn thành",
     CANCELLED: "Đã hủy",
 };
@@ -129,8 +123,7 @@ const CustomerHistory = () => {
                                         pathname: "/(tabs)/(CustomerTab)/bill",
                                         params: { orderId: item._id },
                                     })}
-                                    className="items-center rounded-lg bg-[#80b5f8] p-3"
-                                >
+                                    className="items-center rounded-lg bg-[#80b5f8] p-3">
                                     <Text className="font-bold text-[#111111]">Xem hóa đơn / đánh giá</Text>
                                 </Pressable>
                             ) : null}

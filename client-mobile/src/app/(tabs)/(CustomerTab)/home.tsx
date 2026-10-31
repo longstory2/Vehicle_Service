@@ -47,8 +47,7 @@ const HomeScreen = () => {
                     </TouchableOpacity>
 
                     <Text
-                        className="ml-3 flex-1 text-[20px] text-black"
-                        style={{ fontFamily: "Jakarta-SemiBold" }}>
+                        className="ml-3 flex-1 text-[20px] text-black">
 
                         Xin chào, {user.fullName.trim().split(/\s+/).pop() || "bạn"}
                     </Text>
@@ -86,8 +85,7 @@ const HomeScreen = () => {
                                         width: screenWidth - 40,
                                         height: 170,
                                     }}
-                                    className="rounded-md"
-                                />
+                                    className="rounded-md" />
                             </View>
                         ))}
                     </ScrollView>
@@ -96,17 +94,13 @@ const HomeScreen = () => {
                         {banner.map((item, index) => (
                             <View
                                 key={item.id}
-                                className={`mx-1.5 h-3 w-3 rounded-full ${activeBanner === index ? "bg-[#27b9ee]" : "bg-[#d8d8d8]"
-                                    }`}
-                            />
-                        ))}
+                                className={`mx-1.5 h-3 w-3 rounded-full ${activeBanner === index ? "bg-[#27b9ee]" : "bg-[#d8d8d8]"}`} />))}
                     </View>
                 </View>
 
                 <View className="mt-3 bg-white px-4 py-4">
                     <Text
-                        className="text-[28px] text-black"
-                        style={{ fontFamily: "Jakarta-Bold" }}
+                        className="text-[28px] text-black font-bold"
                     >
                         Chăm sóc xe
                     </Text>
@@ -132,9 +126,7 @@ const HomeScreen = () => {
 
                 <View className="mt-3 bg-white py-4">
                     <Text
-                        className="mb-3 px-4 text-[27px] text-black"
-                        style={{ fontFamily: "Jakarta-Bold" }}
-                    >
+                        className="mb-3 px-4 text-[27px] text-black font-bold">
                         Các dịch vụ hay đặt nhất
                     </Text>
 
@@ -142,8 +134,7 @@ const HomeScreen = () => {
                         horizontal
                         nestedScrollEnabled
                         showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ paddingHorizontal: 14, gap: 14 }}
-                    >
+                        contentContainerStyle={{ paddingHorizontal: 14, gap: 14 }}>
                         {popularServices.map((service) => (
                             <View
                                 key={service.id}
@@ -172,10 +163,7 @@ const HomeScreen = () => {
                                     onPress={goToBooking}
                                     className="mt-3 self-end rounded-full bg-[#a9e1ff] px-5 py-3"
                                 >
-                                    <Text
-                                        className="text-[14px] text-black"
-                                        style={{ fontFamily: "Jakarta-Bold" }}
-                                    >
+                                    <Text className="text-[14px] text-black font-bold">
                                         Đặt ngay
                                     </Text>
                                 </TouchableOpacity>
@@ -185,10 +173,7 @@ const HomeScreen = () => {
                 </View>
 
                 <View className="mt-3 bg-white px-4 py-4">
-                    <Text
-                        className="mb-3 text-[27px] text-black"
-                        style={{ fontFamily: "Jakarta-Bold" }}
-                    >
+                    <Text className="mb-3 text-[27px] text-black font-bold">
                         Các loại dịch vụ
                     </Text>
 

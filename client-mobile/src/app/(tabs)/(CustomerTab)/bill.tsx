@@ -28,7 +28,7 @@ type Order = {
     plate?: string;
   };
   additionalParts?: { name: string; quantity: number; unitPrice: number }[];
-  technicianId?: { fullName?: string; phone?: string } | null;
+  technicianId?: { fullName?: string; } | null;
   customerRating?: { score: number | null; comment: string };
 };
 
@@ -164,7 +164,7 @@ const Bill = () => {
           {order.additionalParts?.map((part, index) => (
             <View key={`${part.name}-${index}`} className="flex-row justify-between gap-3">
               <Text className="text-[15px] text-[#444444]">
-                {part.name} × {part.quantity}
+                {part.name} x {part.quantity}
               </Text>
               <Text className="text-[15px] text-[#444444]">{formatCurrency(part.unitPrice * part.quantity)}</Text>
             </View>

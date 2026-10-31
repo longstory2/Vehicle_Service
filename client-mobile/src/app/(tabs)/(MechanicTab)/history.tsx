@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, RefreshControl, Text, View } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from "react-native";
+import { router, useFocusEffect } from "expo-router";
 import { apiRequest } from "../../../../utils/api";
 import BackButton from "../../../../components/BackButton";
 type Order = {
@@ -132,6 +132,17 @@ const MechanicHistory = () => {
                                     Đánh giá khách hàng: {item.technicianRating.score}/5
                                     {item.technicianRating.comment ? ` — ${item.technicianRating.comment}` : ""}
                                 </Text>
+                            ) : null}
+                            {item.status === "COMPLETED" ? (
+                                <Pressable
+                                    accessibilityRole="button"
+                                    onPress={() => router.push({
+                                        pathname: "/(tabs)/(MechanicTab)/bill",
+                                        params: { orderId: item._id },
+                                    })}
+                                    className="items-center rounded-lg bg-[#80b5f8] p-3">
+                                    <Text className="font-bold text-[#111111]">Xem hóa đơn / đánh giá</Text>
+                                </Pressable>
                             ) : null}
                         </View>
                     );
