@@ -32,23 +32,12 @@
         }
       ],
       [
-        "expo-font",
+        "expo-location",
         {
-          "fonts": [
-            "./assets/fonts/PlusJakartaSans-Bold.ttf",
-            "./assets/fonts/PlusJakartaSans-ExtraBold.ttf",
-            "./assets/fonts/PlusJakartaSans-ExtraLight.ttf",
-            "./assets/fonts/PlusJakartaSans-Light.ttf",
-            "./assets/fonts/PlusJakartaSans-Medium.ttf",
-            "./assets/fonts/PlusJakartaSans-Regular.ttf",
-            "./assets/fonts/PlusJakartaSans-Italic.ttf",
-            "./assets/fonts/PlusJakartaSans-SemiBold.ttf",
-            "./assets/fonts/PlusJakartaSans-SemiBoldItalic.ttf"
-          ]
+          "locationWhenInUsePermission": "Cho phép Vehicle Service dùng vị trí khi bạn đang nhận đơn để khách theo dõi kỹ thuật viên."
         }
       ],
-      "expo-secure-store",
-      "expo-audio"
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

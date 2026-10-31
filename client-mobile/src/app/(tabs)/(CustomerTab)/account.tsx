@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
-import { Image, Pressable, Text, TextInput, View, type ImageSourcePropType, } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { Redirect, router } from "expo-router";
 import { useAuth } from "../../../../context/AuthContext";
-import { icons } from "../../../../constants/icon";
+import BackButton from "../../../../components/BackButton";
 import { normalizeVietnamPhoneNumber } from "../../../../utils/auth";
 import { confirmAction, showAlert } from "../../../../utils/notify";
 import { AccountField } from "../../../../components/InputField"
 const avatar = require("../../../../assets/images/avatar.png");
-
-const TabIcon = ({ source }: { source: ImageSourcePropType }) => (
-    <Image source={source} className="w-6 h-6" resizeMode="contain" />
-);
 
 const Account = () => {
     const { isLoaded, isSignedIn, user, signOut, updateProfile } = useAuth();
@@ -68,16 +64,8 @@ const Account = () => {
     return (
         <View className="flex-1 bg-white px-6 pb-4 pt-5">
             <View className="h-12 flex-row items-center justify-center mt-10">
-                <Pressable
-                    className="absolute left-0 h-10 w-10 items-center justify-center rounded-full bg-neutral-100"
-                    accessibilityRole="button"
-                    accessibilityLabel="Quay lại"
-                    hitSlop={8}
-                    onPress={() => router.back()}
-                >
-                    <TabIcon source={icons.backarrow} />
-                </Pressable>
-                <Text className="text-xl font-Jakarta-Bold text-black">Tài khoản</Text>
+                <BackButton style={{ position: "absolute", left: 0 }} />
+                <Text className="text-[30px] text-black font-bold">Tài khoản</Text>
             </View>
 
             <View className="mt-5 items-center">
@@ -85,7 +73,7 @@ const Account = () => {
                     source={avatar}
                     className="h-24 w-24  rounded-full"
                 />
-                <Text className="mt-3 text-lg font-JakartaSemiBold text-black">
+                <Text className="mt-3 text-lg text-black">
                     {fullName}
                 </Text>
             </View>
@@ -111,7 +99,7 @@ const Account = () => {
                         disabled={isSaving}
                         onPress={handleSavePhone}
                     >
-                        <Text className="font-JakartaSemiBold text-black">
+                        <Text className="text-black">
                             {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
                         </Text>
                     </Pressable>
@@ -123,7 +111,7 @@ const Account = () => {
                 className="mt-auto items-center rounded-lg bg-neutral-100 py-3"
                 onPress={handleSignOut}
             >
-                <Text className="font-JakartaSemiBold text-black">Đăng xuất</Text>
+                <Text className="text-black">Đăng xuất</Text>
             </Pressable>
         </View>
     );

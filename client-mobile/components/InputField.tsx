@@ -34,7 +34,7 @@ const InputField = ({
   <KeyboardAvoidingView>
     <TouchableWithoutFeedback>
       <View className="my-2 w-full">
-        <Text className={`text-lg font-JakartaSemiBold mb-3 ${labelStyle}`}>
+        <Text className={`text-lg mb-3 ${labelStyle}`}>
           {label}
         </Text>
         <View className={`flex flex-row justify-start items-center relative bg-neutral-100 rounded-full border border-neutral-100 focus:border-primary-500  ${containerStyle}`}>
@@ -42,7 +42,7 @@ const InputField = ({
             <Image source={icon} className={`w-6 h-6 ml-4 ${iconStyle}`} />
           )}
           <TextInput
-            className={`rounded-full p-4 font-Jakarta-SemiBold text-[15px] flex-1 ${inputStyle} text-left`}
+            className={`rounded-full p-4 text-[15px] flex-1 ${inputStyle} text-left`}
             secureTextEntry={secureTextEntry}
             {...props} />
         </View>
@@ -69,7 +69,7 @@ export const FormInput = ({
   keyboardType?: "default" | "phone-pad" | "numeric";
 }) => (
   <View className="mb-3">
-    <Text className="mb-1.5 text-[16px] font-Jakarta-Bold text-black">
+    <Text className="mb-1.5 text-[16px] text-black">
       {label}{required && <Text className="text-red-500">*</Text>}
     </Text>
     <TextInput
@@ -104,7 +104,7 @@ export const AccountField = ({
   accessibilityLabel,
 }: AccountFieldProps) => (
   <View className="mb-2">
-    <Text className="mb-1 text-lg font-JakartaSemiBold text-black">{label}</Text>
+    <Text className="mb-1 text-lg text-black">{label}</Text>
     <TextInput
       accessibilityLabel={accessibilityLabel}
       className="h-12 rounded-xl bg-neutral-100 px-3 text-base text-black"

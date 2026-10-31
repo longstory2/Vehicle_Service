@@ -39,41 +39,18 @@ export const vehicleTypes: CatalogOption[] = [
 export const motorcycleMakes: CatalogOption[] = [
     { id: "honda", label: "Honda" },
     { id: "yamaha", label: "Yamaha" },
-    { id: "suzuki", label: "Suzuki" },
-    { id: "sym", label: "SYM" },
-    { id: "piaggio", label: "Piaggio" },
-    { id: "kymco", label: "Kymco" },
-    { id: "kawasaki", label: "Kawasaki" },
-    { id: "ducati", label: "Ducati" },
-    { id: "bmw-motorrad", label: "BMW Motorrad" },
-    { id: "royal-enfield", label: "Royal Enfield" },
-    { id: "vinfast", label: "VinFast" },
-    { id: "other", label: "Khác" },
 ];
 
 export const carMakes: CatalogOption[] = [
     { id: "toyota", label: "Toyota" },
-    { id: "hyundai", label: "Hyundai" },
-    { id: "kia", label: "Kia" },
-    { id: "ford", label: "Ford" },
     { id: "mitsubishi", label: "Mitsubishi" },
     { id: "mazda", label: "Mazda" },
     { id: "honda", label: "Honda" },
-    { id: "vinfast", label: "VinFast" },
     { id: "mercedes-benz", label: "Mercedes-Benz" },
     { id: "bmw", label: "BMW" },
     { id: "lexus", label: "Lexus" },
     { id: "suzuki", label: "Suzuki" },
-    { id: "nissan", label: "Nissan" },
-    { id: "isuzu", label: "Isuzu" },
     { id: "peugeot", label: "Peugeot" },
-    { id: "subaru", label: "Subaru" },
-    { id: "volkswagen", label: "Volkswagen" },
-    { id: "audi", label: "Audi" },
-    { id: "volvo", label: "Volvo" },
-    { id: "mg", label: "MG" },
-    { id: "byd", label: "BYD" },
-    { id: "other", label: "Khác" },
 ];
 
 // A combined list keeps existing booking screens able to resolve a selected make ID.
@@ -100,30 +77,6 @@ export const serviceEstimatedPrices: Record<string, number> = {
     other: 0,
 };
 
-export const bookingPreview = {
-    pickupAddress: "Phan Đăng Lưu, Bình Thạnh, TP. Hồ Chí Minh",
-    vehicleInfo: [
-        { label: "Loại xe", value: "Xe máy" },
-        { label: "Hãng xe", value: "Honda" },
-        { label: "Biển số xe", value: "R-123-22" },
-    ],
-    serviceInfo: [
-        { label: "Loại dịch vụ", value: "Thay phụ tùng" },
-        { label: "Phụ tùng", value: "Vỏ xe" },
-        { label: "Mô tả", value: "Mô tả của khách hàng" },
-    ],
-    estimatedPrice: 150000,
-};
-
-export const UserCustomer = [
-    {
-        id: 1,
-        avatar: avatar,
-        Name: "Lê Văn A",
-        phoneNumber: "01234567890",
-        email: "nguyenphamquynhlong@gmail.com", //lấy từ server (useAuth)
-    }
-]
 
 export const data = {
     popularServices,
@@ -134,5 +87,4 @@ export const data = {
     carMakes,
     spareParts,
     serviceEstimatedPrices,
-    bookingPreview,
 };

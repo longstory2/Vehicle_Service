@@ -1,11 +1,12 @@
-import { Tabs } from "expo-router";
-import { useAudioPlayer } from "expo-audio";
+import { Stack, Tabs } from "expo-router";
+
 const TabLayout = () => (
-    <Tabs screenOptions={{ headerShown: false, tabBarStyle: { display: "none" } }}>
-        <Tabs.Screen name="home" />
-        <Tabs.Screen name="haveBook" />
-        <Tabs.Screen name="setting" />
-    </Tabs>
+    <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="home" />
+        <Stack.Screen name="havebook" />
+        <Stack.Screen name="history" />
+        <Stack.Screen name="bill" />
+    </Stack>
 )
 
 export default TabLayout

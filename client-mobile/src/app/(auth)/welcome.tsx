@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useRef, useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { Image, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Swiper from "react-native-swiper";
 import { onboarding } from "../../../constants";
@@ -12,14 +12,6 @@ const Home = () => {
   const isLastSlide = activeIndex === onboarding.length - 1;
   return (
     <SafeAreaView className="items-center bg-white" style={{ flex: 1, width: "100%" }}>
-      <TouchableOpacity
-        onPress={() => {
-          router.replace("/(auth)/sign-up");
-        }}
-        className="w-full flex justify-end items-end p-5"
-      >
-      </TouchableOpacity>
-
       <Swiper
         ref={swiperRef}
         loop={false}
@@ -43,7 +35,7 @@ const Home = () => {
                 {item.title}
               </Text>
             </View>
-            <Text className="text-md font-JakartaBold text-center text-[#858585] mx-10 mt-3">
+            <Text className="text-md text-center text-[#858585] mx-10 mt-3">
               {item.description}
             </Text>
           </View>

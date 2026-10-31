@@ -1,19 +1,13 @@
-import { useRef, useState } from "react";
-import { ActivityIndicator, Alert, ImageSourcePropType, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Image, useWindowDimensions, } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View, Image, useWindowDimensions } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { serviceCategories, serviceEstimatedPrices, spareParts, vehicleMakes, vehicleTypes, } from "../../../../constants/data";
 import LeafletMap from "../../../../components/LeafletMap";
 import { icons } from "../../../../constants/icon";
-import { apiRequest } from "../../../../utils/api";
+import DraggableOrderSheet from "../../../../components/DraggableOrderSheet";
+import BackButton from "../../../../components/BackButton";
+import { useBooking } from "../../../../utils/useBooking";
+import technicianAvatar from "../../../../assets/images/avatar.png";
 
-const TabIcon = ({ source }: { source: ImageSourcePropType }) => (
-    <View>
-        <View>
-            <Image source={source} className="w-6 h-6" />
-        </View>
-    </View>
-)
 type BookingParams = {
     categoryId?: string | string[];
     vehicleTypeId?: string | string[];
@@ -24,18 +18,7 @@ type BookingParams = {
     mileage?: string | string[];
     description?: string | string[];
     estimatedPrice?: string | string[];
-};
-
-type PickupLocation = {
-    latitude: number;
-    longitude: number;
-    address: string;
-};
-
-type NominatimResult = {
-    lat: string;
-    lon: string;
-    display_name: string;
+    paymentMethod?: string | string[];
 };
 
 const readParam = (value?: string | string[]) =>
@@ -52,6 +35,10 @@ const BookScreen = () => {
     const mileage = readParam(params.mileage);
     const description = readParam(params.description);
     const routePrice = readParam(params.estimatedPrice);
+    const routePaymentMethod = readParam(params.paymentMethod);
+    const paymentMethod = routePaymentMethod === "momo" || routePaymentMethod === "vnpay"
+        ? routePaymentMethod
+        : "cash";
     const selectedCategory = serviceCategories.find((item) => item.id === categoryId);
     const selectedSparePart = spareParts.find((item) => item.id === sparePartId);
     const selectedPrice = Number(routePrice);
@@ -60,7 +47,37 @@ const BookScreen = () => {
         : selectedSparePart?.estimatedPrice
         ?? serviceEstimatedPrices[categoryId]
         ?? 0;
-    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const {
+        activeOrder,
+        isSubmitting,
+        isSheetExpanded,
+        setIsSheetExpanded,
+        trackingError,
+        isUpdatingOrder,
+        pickupAddress,
+        pickupLocation,
+        locationError,
+        isSearchingLocation,
+        handlePickupAddressChange,
+        searchPickupLocation,
+        requestCurrentLocation,
+        submitBooking,
+        cancelOrder,
+        respondToParts,
+    } = useBooking({
+        categoryId,
+        vehicleTypeId,
+        vehicleMakeId,
+        plate,
+        serviceName,
+        sparePartId,
+        mileage,
+        description,
+        estimatedPrice,
+        paymentMethod,
+    });
+
     const serviceRows = [
         { label: "Loại dịch vụ", value: selectedCategory?.title ?? "Chưa có loại dịch vụ" },
         ...(serviceName ? [{ label: "Dịch vụ cần thực hiện", value: serviceName }] : []),
@@ -68,14 +85,10 @@ const BookScreen = () => {
         ...(mileage ? [{ label: "Số Km hiện tại", value: `${mileage} km` }] : []),
         { label: "Mô tả", value: description || "Chưa có mô tả" },
     ];
+
     const { height } = useWindowDimensions();
-    const [pickupAddress, setPickupAddress] = useState("");
-    const [pickupLocation, setPickupLocation] = useState<PickupLocation | null>(null);
-    const [locationError, setLocationError] = useState("");
-    const [isSearchingLocation, setIsSearchingLocation] = useState(false);
-    const [selectedOption, setSelectedOption] = useState("cash");
-    const lastSearchAt = useRef(0);
     const mapHeight = height * 0.56;
+
     const vehicleRows = [
         {
             label: "Loại xe",
@@ -90,152 +103,269 @@ const BookScreen = () => {
             value: plate || "Chưa có biển số",
         },
     ];
-    // Chỉ tra cứu khi khách chủ động bấm Tìm hoặc gửi từ bàn phím.
-    const searchPickupLocation = async () => {
-        const query = pickupAddress.trim();
-        if (!query) {
-            setLocationError("Nhập địa chỉ hoặc tên địa điểm trước khi tìm.");
-            return;
-        }
-        if (Date.now() - lastSearchAt.current < 1000) {
-            setLocationError("Vui lòng chờ một giây trước khi tìm địa chỉ tiếp theo.");
-            return;
-        }
 
-        lastSearchAt.current = Date.now();
-        setIsSearchingLocation(true);
-        setLocationError("");
-        try {
-            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=vn&accept-language=vi&q=${encodeURIComponent(query)}`;
-            const response = await fetch(url, {
-                headers: {
-                    Accept: "application/json",
-                    "Accept-Language": "vi",
-                    "User-Agent": "VehicleServiceMobile/1.0",
-                },
-            });
+    if (activeOrder) {
+        const orderStatusText = {
+            PENDING: "Đang tìm kỹ thuật viên",
+            ACCEPTED: "Kỹ thuật viên đã xác nhận đơn",
+            ARRIVED: "Kỹ thuật viên đã đến vị trí của bạn",
+            INSPECTING: "Đang kiểm tra",
+            AWAITING_PARTS_APPROVAL: "Chờ bạn xác nhận phụ tùng",
+            REPAIRING: "Đang sửa chữa",
+            COMPLETED: "Đơn đã hoàn thành",
+            CANCELLED: "Đơn đã hủy",
+        }[activeOrder.status];
 
-            if (!response.ok) {
-                throw new Error(`Geocoding request failed: ${response.status}`);
-            }
+        const orderVehicleRows = [
+            { label: "Loại xe", value: activeOrder.serviceDetails.vehicleType || "Chưa có" },
+            { label: "Hãng xe", value: activeOrder.serviceDetails.vehicleMake || "Chưa có" },
+            { label: "Biển số xe", value: activeOrder.serviceDetails.plate || "Chưa có" },
+        ];
 
-            const results: NominatimResult[] = await response.json();
-            const result = results[0];
-            if (!result) {
-                setPickupLocation(null);
-                setLocationError("Không tìm thấy địa chỉ. Hãy thử nhập tên đường, phường hoặc quận.");
-                return;
-            }
+        const orderServiceRows = [
+            { label: "Loại dịch vụ", value: activeOrder.serviceDetails.category || "Chưa có" },
+            ...(activeOrder.serviceDetails.serviceName
+                ? [{ label: "Dịch vụ", value: activeOrder.serviceDetails.serviceName }]
+                : []),
+            ...(activeOrder.serviceDetails.sparePart
+                ? [{ label: "Phụ tùng", value: activeOrder.serviceDetails.sparePart }]
+                : []),
+            { label: "Mô tả", value: activeOrder.serviceDetails.description || "Không có" },
+        ];
 
-            const latitude = Number(result.lat);
-            const longitude = Number(result.lon);
-            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-                throw new Error("Geocoding returned invalid coordinates");
-            }
+        return (
+            <View className="flex-1 bg-[#eeeeee]">
+                <View className="absolute inset-0">
+                    <LeafletMap
+                        location={{ ...activeOrder.location, address: activeOrder.address }}
+                        technicianLocation={
+                            activeOrder.technicianLocation &&
+                                Number.isFinite(activeOrder.technicianLocation.latitude) &&
+                                Number.isFinite(activeOrder.technicianLocation.longitude)
+                                ? activeOrder.technicianLocation
+                                : null
+                        }
+                        pickupLabel="Điểm sửa xe"
+                    />
+                </View>
 
-            setPickupAddress(result.display_name);
-            setPickupLocation({ latitude, longitude, address: result.display_name });
-        } catch {
-            setPickupLocation(null);
-            setLocationError("Không thể tìm địa chỉ lúc này. Kiểm tra kết nối rồi thử lại.");
-        } finally {
-            setIsSearchingLocation(false);
-        }
-    };
+                <View pointerEvents="box-none" className="absolute top-0 left-0 right-0 flex-row items-center gap-3 px-4">
+                    <BackButton />
+                    <Text className="rounded-[18px] bg-white px-3.5 py-2.5 text-base font-bold text-[#111111] shadow-md">
+                        Đơn của bạn
+                    </Text>
+                </View>
 
-    const requestCurrentLocation = () => {
-        // TODO: Tự tích hợp expo-location, xin quyền GPS rồi cập nhật pickupLocation.
-        Alert.alert("Định vị GPS", "Tích hợp lấy tọa độ thiết bị tại handler này.");
-    };
+                <DraggableOrderSheet
+                    expanded={isSheetExpanded}
+                    onExpandedChange={setIsSheetExpanded}
+                    screenHeight={height}
+                    swipeEnabled
+                    compactContent={
+                        <View className="px-[22px] pb-3">
+                            <View className="flex-row items-start justify-between">
+                                <View className="flex-1 pr-3">
+                                    <Text className="text-[21px] font-bold text-[#111111]">{orderStatusText}</Text>
+                                    {/* <Text numberOfLines={1} className="mt-1 text-sm text-[#555555]">
+                                        {activeOrder.technicianLocation
+                                            ? "Vị trí hiện tại của kỹ thuật viên trên bản đồ"
+                                            : "Đang chờ vị trí của kỹ thuật viên"}
+                                    </Text> */}
+                                </View>
+                                {/* <Text className="pt-1 text-base text-[#18aef5]">2 phút</Text> */}
+                            </View>
+                            <Text numberOfLines={1} className="mt-3 text-sm text-[#555555]">
+                                {activeOrder.address}
+                            </Text>
+                            {activeOrder.technicianId ? (
+                                <View className="mt-3 flex-row items-center">
+                                    <Image source={icons.techAvatar} className="h-12 w-12 rounded-full" />
+                                    <Text className="ml-3 text-[17px] font-bold text-[#111111]">
+                                        {activeOrder.technicianId.fullName}
+                                    </Text>
+                                </View>
+                            ) : (
+                                <Text className="mt-1.5 text-[13px] text-[#777777]">
+                                    Đơn sẽ được cập nhật khi có kỹ thuật viên nhận.
+                                </Text>
+                            )}
+                        </View>
+                    }>
+                    {activeOrder.technicianId ? (
+                        <View className="mb-3 border-b-8 border-[#eeeeee] pb-3">
 
-    const submitBooking = async () => {
-        if (!pickupLocation) {
-            Alert.alert(
-                "Chưa chọn điểm đón",
-                "Nhập địa chỉ rồi bấm Tìm để hiển thị vị trí trên bản đồ."
-            );
-            return;
-        }
-        if (isSubmitting) return;
+                            <View className="mx-[-22px] mb-3 h-[7px] bg-[#e7e7e7]" />
 
-        setIsSubmitting(true);
+                            <View className="mt-3 flex-row justify-center gap-12">
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Gọi kỹ thuật viên"
+                                    onPress={() => {
+                                        if (activeOrder.technicianId?.phone) {
+                                            void Linking.openURL(`tel:${activeOrder.technicianId.phone}`);
+                                        }
+                                    }}
+                                    disabled={!activeOrder.technicianId.phone}
+                                    className="items-center"
+                                >
+                                    <View className="h-12 w-12 items-center justify-center rounded-full bg-[#eeeeee]">
+                                        <Image source={icons.call} className="h-7 w-7" resizeMode="contain" />
+                                    </View>
+                                    <Text className="mt-1 text-[16px] font-bold text-[#111111]">Gọi kỹ sư</Text>
+                                </Pressable>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Nhắn tin cho kỹ thuật viên"
+                                    onPress={() => {
+                                        if (activeOrder.technicianId?.phone) {
+                                            void Linking.openURL(`sms:${activeOrder.technicianId.phone}`);
+                                        }
+                                    }}
+                                    disabled={!activeOrder.technicianId.phone}
+                                    className="items-center"
+                                >
+                                    <View className="h-12 w-12 items-center justify-center rounded-full bg-[#eeeeee]">
+                                        <Image source={icons.message} className="h-7 w-7" resizeMode="contain" />
+                                    </View>
+                                    <Text className="mt-1 text-[16px] font-bold text-[#111111]">Nhắn tin</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    ) : null}
+                    {trackingError ? (
+                        <Text accessibilityRole="alert" className="mb-3 text-sm text-[#b42318]">
+                            {trackingError}
+                        </Text>
+                    ) : null}
+                    {/* <InfoSection
+                        title="Thông tin kỹ thuật viên"
+                        rows={[
+                            {
+                                label: "Họ tên",
+                                value: activeOrder.technicianId?.fullName ?? "Đang tìm kỹ thuật viên",
+                            },
+                            {
+                                label: "Số điện thoại",
+                                value: activeOrder.technicianId?.phone ?? "Chưa có",
+                            },
+                        ]} /> */}
+                    {/* <View className="h-2 mb-2.5 bg-[#e7e7e7]" /> */}
+                    <InfoSection title="Địa điểm" rows={[{ label: "Địa chỉ", value: activeOrder.address }]} />
+                    <View className="mx-[-22px] mb-3 h-[7px] bg-[#e7e7e7]" />
+                    <InfoSection title="Thông tin xe" rows={orderVehicleRows} />
+                    <View className="mx-[-22px] mb-3 h-[7px] bg-[#e7e7e7]" />
+                    <InfoSection title="Thông tin dịch vụ" rows={orderServiceRows} />
+                    <View className="mx-[-22px] mb-3 h-[7px] bg-[#e7e7e7]" />
+                    <InfoSection
+                        title="Thanh toán"
+                        rows={[
+                            {
+                                label: "Phương thức",
+                                value: activeOrder.paymentMethod === "cash"
+                                    ? "Tiền mặt"
+                                    : activeOrder.paymentMethod === "momo"
+                                        ? "MoMo"
+                                        : activeOrder.paymentMethod === "vnpay"
+                                            ? "VNPay"
+                                            : activeOrder.paymentMethod,
+                            },
+                            {
+                                label: "Ước tính",
+                                value: `${(activeOrder.totalPrice ?? activeOrder.estimatedPrice).toLocaleString("vi-VN")}đ`,
+                            },
+                        ]}
+                    />
 
-        try {
-            await apiRequest("/orders", {
-                method: "POST",
-                body: {
-                    serviceDetails: {
-                        category: selectedCategory?.title ?? "",
-                        serviceName,
-                        sparePart: selectedSparePart?.label ?? "",
-                        vehicleType:
-                            vehicleTypes.find((item) => item.id === vehicleTypeId)?.label ?? "",
-                        vehicleMake:
-                            vehicleMakes.find((item) => item.id === vehicleMakeId)?.label ?? "",
-                        plate,
-                        mileage,
-                        description,
-                    },
-                    address: pickupLocation.address,
-                    location: {
-                        latitude: pickupLocation.latitude,
-                        longitude: pickupLocation.longitude,
-                    },
-                    estimatedPrice,
-                    paymentMethod: selectedOption,
-                },
-            });
+                    {activeOrder.status === "AWAITING_PARTS_APPROVAL" && activeOrder.partsProposal ? (
+                        <View className="mt-3 p-3.5 rounded-xl bg-[#f4f7fb]">
+                            <Text className="text-base font-bold text-[#111111]">Kỹ thuật viên đề xuất phụ tùng</Text>
+                            <Text className="mt-1.5 mb-3 text-[15px] text-[#555555]">
+                                {activeOrder.partsProposal.name} × {activeOrder.partsProposal.quantity} —{" "}
+                                {(activeOrder.partsProposal.unitPrice * activeOrder.partsProposal.quantity).toLocaleString("vi-VN")}đ
+                            </Text>
+                            <View className="flex-row gap-2.5">
+                                <Pressable
+                                    accessibilityRole="button"
+                                    disabled={isUpdatingOrder}
+                                    onPress={() => void respondToParts(false)}
+                                    className="min-h-[48px] flex-1 items-center justify-center mt-3 rounded-[10px] px-3 border border-[#b42318] bg-white"
+                                >
+                                    <Text className="text-[15px] font-bold text-[#b42318]">Từ chối</Text>
+                                </Pressable>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    disabled={isUpdatingOrder}
+                                    onPress={() => void respondToParts(true)}
+                                    className="min-h-[48px] flex-1 items-center justify-center mt-3 rounded-[10px] px-3 bg-[#80b5f8]"
+                                >
+                                    <Text className="text-[15px] font-bold text-[#111111]">Đồng ý</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    ) : null}
 
-            Alert.alert(
-                "Đã gửi đơn",
-                "Đơn hàng đang chờ kỹ thuật viên xác nhận."
-            );
-        } catch (error) {
-            Alert.alert(
-                "Không gửi được đơn",
-                error instanceof Error ? error.message : "Vui lòng thử lại."
-            );
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    return (
-        <View style={styles.screen}>
-            <View style={[styles.mapStage, { height: mapHeight }]}>
-                <LeafletMap location={pickupLocation} />
-                <SafeAreaView
-                    edges={["top"]}
-                    pointerEvents="box-none"
-                    style={styles.mapControls}
-                >
-                    <View style={styles.searchRow}>
+                    {activeOrder.status === "COMPLETED" ? (
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Quay lại"
-                            onPress={() => router.back()}
-                            style={styles.backButton}
+                            onPress={() => router.push({
+                                pathname: "/(tabs)/(CustomerTab)/bill",
+                                params: { orderId: activeOrder._id },
+                            })}
+                            className="min-h-[48px] items-center justify-center mt-3 rounded-[10px] px-3 bg-[#80b5f8]"
                         >
-                            <Text style={styles.backArrow}>←</Text>
+                            <Text className="text-[15px] font-bold text-[#111111]">Xem hóa đơn và đánh giá</Text>
                         </Pressable>
-                        <View style={styles.addressField}>
-                            <View>
-                                <TabIcon source={icons.location} />
-                            </View>
+                    ) : null}
+
+                    {activeOrder.status === "PENDING" || activeOrder.status === "ACCEPTED" ? (
+                        <Pressable
+                            accessibilityRole="button"
+                            disabled={isUpdatingOrder}
+                            onPress={cancelOrder}
+                            className="min-h-[48px] items-center justify-center mt-3 rounded-[10px] px-3 border border-[#b42318] bg-white"
+                        >
+                            <Text className="text-[15px] font-bold text-[#b42318]">
+                                {isUpdatingOrder ? "Đang xử lý..." : "Hủy đơn"}
+                            </Text>
+                        </Pressable>
+                    ) : null}
+
+                    {activeOrder.technicianLocation?.updatedAt ? (
+                        <Text className="mt-3 text-right text-xs text-[#777777]">
+                            Vị trí cập nhật lúc{" "}
+                            {new Date(activeOrder.technicianLocation.updatedAt).toLocaleTimeString("vi-VN")}
+                        </Text>
+                    ) : null}
+                </DraggableOrderSheet>
+            </View>
+        );
+    }
+
+    return (
+        <View className="flex-1 bg-[#eeeeee]">
+            <View className="relative bg-[#e8e5dc]" style={{ height: mapHeight }}>
+                <LeafletMap location={pickupLocation} />
+                <View
+                    pointerEvents="box-none"
+                    className="absolute top-0 left-0 right-0 px-4 pb-2">
+                    <View className="absolute top-0 left-0 right-0 z-10 flex-row items-center gap-2 p-4 pt-12">
+                        <BackButton />
+                        <View className="h-[52px] flex-1 flex-row items-center rounded-[14px] bg-white px-3 shadow-md">
+                            <Image
+                                source={icons.location}
+                                resizeMode="contain"
+                                className="mr-2 h-6 w-6"
+                            />
                             <TextInput
                                 accessibilityLabel="Địa chỉ điểm đón"
                                 editable={!isSearchingLocation}
-                                onChangeText={(value) => {
-                                    setPickupAddress(value);
-                                    setPickupLocation(null);
-                                    setLocationError("");
-                                }}
+                                onChangeText={handlePickupAddressChange}
                                 onSubmitEditing={() => void searchPickupLocation()}
                                 returnKeyType="search"
                                 placeholder="Nhập vị trí của bạn"
                                 placeholderTextColor="#858585"
                                 value={pickupAddress}
-                                style={styles.addressInput}
+                                className="flex-1 p-0 text-sm font-semibold text-[#333333]"
                             />
                         </View>
                         <Pressable
@@ -243,73 +373,69 @@ const BookScreen = () => {
                             accessibilityLabel="Tìm địa chỉ trên bản đồ"
                             disabled={isSearchingLocation}
                             onPress={() => void searchPickupLocation()}
-                            style={styles.searchButton}
+                            className="min-w-[52px] h-12 items-center justify-center rounded-[14px] bg-[#e8f5ef]"
                         >
                             {isSearchingLocation ? (
                                 <ActivityIndicator color="#16835d" />
                             ) : (
-                                <Text style={styles.searchButtonText}>Tìm</Text>
+                                <Text className="text-sm font-bold text-[#16835d]">Tìm</Text>
                             )}
                         </Pressable>
                     </View>
                     {locationError ? (
-                        <Text accessibilityRole="alert" style={styles.locationError}>
+                        <Text accessibilityRole="alert" className="mt-2 rounded-[10px] bg-white px-3 py-2 text-[13px] text-[#b42318]">
                             {locationError}
                         </Text>
                     ) : null}
-                </SafeAreaView>
+                </View>
+
                 <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Định vị vị trí hiện tại bằng GPS"
                     onPress={requestCurrentLocation}
-                    style={styles.locateButton}
+                    className="absolute right-[18px] bottom-[38px] w-12 h-12 items-center justify-center rounded-full bg-white shadow-md"
                 >
-                    <Text style={styles.locateIcon}>◎</Text>
+                    <Text className="text-[31px] leading-[35px] text-[#16835d]">◎</Text>
                 </Pressable>
             </View>
 
-            <SafeAreaView edges={["bottom"]} style={styles.bottomSheet}>
+            <View className="flex-1 -mt-[22px] overflow-hidden rounded-t-[28px] bg-[#f4f4f4]">
                 <ScrollView
                     bounces={false}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.detailsContent}
-                    style={styles.detailsScroll}
-                >
-                    <View style={styles.sheetHandle} />
+                    contentContainerStyle={{ paddingTop: 10, paddingBottom: 14 }}
+                    className="flex-1">
+                    <View className="self-center w-[72px] h-[5] mb-6 rounded-[3px] bg-[#ffffff]" />
                     <InfoSection title="Thông tin xe" rows={vehicleRows} />
-                    <View style={styles.sectionDivider} />
+                    <View className="mx-[-22px] mb-3 h-[7px] bg-[#e7e7e7]" />
                     <InfoSection title="Mô tả dịch vụ" rows={serviceRows} />
                 </ScrollView>
 
-                <View style={styles.orderFooter}>
-                    <View style={styles.optionRow}>
-                        <Pressable
-                            accessibilityRole="button"
-                            onPress={() => setSelectedOption("cash")}
-                            style={styles.optionButton}
-                        >
-                            <TabIcon source={icons.payment} />
-                            <Text style={[styles.optionText, selectedOption === "cash" && styles.optionSelected]}>
-                                Tiền mặt
-                            </Text>
-                        </Pressable>
-                        <View style={styles.optionDivider} />
-                        <Pressable
-                            accessibilityRole="button"
-                            onPress={() => setSelectedOption("offer")}
-                            style={styles.optionButton}
-                        >
-                            <TabIcon source={icons.sale} />
-                            <Text style={[styles.optionText, selectedOption === "offer" && styles.optionSelected]}>
-                                Ưu đãi
-                            </Text>
-                        </Pressable>
+                <View className="border-t border-[#e9e9e9] bg-[#f7f7f7] px-[22px] pt-2.5 pb-2">
+                    <View
+                        accessibilityLabel="Phương thức thanh toán đã chọn"
+                        className="min-h-[58px] flex-row items-center justify-between mb-2 rounded-xl bg-white px-3 py-2">
+                        <View className="flex-row items-center gap-2.5">
+                            <Image source={icons.payment}
+                                resizeMode="contain"
+                                className="mr-2 h-10 w-10" />
+                            <View>
+                                <Text className="text-xs text-[#777777]">Phương thức thanh toán</Text>
+                                <Text className="mt-0.5 text-base font-bold text-[#222222]">
+                                    {paymentMethod === "cash"
+                                        ? "Tiền mặt"
+                                        : paymentMethod === "momo"
+                                            ? "MoMo"
+                                            : "VNPay"}
+                                </Text>
+                            </View>
+                        </View>
                     </View>
 
-                    <View style={styles.priceRow}>
-                        <View style={styles.priceDetails}>
-                            <Text style={styles.priceTitle}>Chi phí</Text>
-                            <Text style={styles.priceEstimate}>
+                    <View className="min-h-[78px] flex-row items-center justify-between gap-3">
+                        <View className="flex-1">
+                            <Text className="text-[17px] font-bold text-[#111111]">Chi phí</Text>
+                            <Text className="mt-0.5 text-[17px] font-bold text-[#38c98d]">
                                 Ước tính: {estimatedPrice.toLocaleString("vi-VN")} VND
                             </Text>
                         </View>
@@ -317,17 +443,17 @@ const BookScreen = () => {
                             accessibilityRole="button"
                             disabled={isSubmitting}
                             onPress={() => void submitBooking()}
-                            style={styles.orderButton}
+                            className="min-w-[145px] min-h-[58px] items-center justify-center rounded-[13px] bg-[#a9dfff] px-[18px]"
                         >
                             {isSubmitting ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.orderButtonText}>Đặt đơn</Text>
+                                <Text className="text-[17px] font-bold text-[#111111]">Đặt đơn</Text>
                             )}
                         </Pressable>
                     </View>
                 </View>
-            </SafeAreaView>
+            </View>
         </View>
     );
 };
@@ -335,258 +461,15 @@ const BookScreen = () => {
 type InfoRow = { label: string; value: string };
 
 const InfoSection = ({ title, rows }: { title: string; rows: InfoRow[] }) => (
-    <View style={styles.infoSection}>
-        <Text style={styles.sectionTitle}>{title}</Text>
+    <View className="px-[22px] pb-3.5">
+        <Text className="mb-2 text-lg font-bold text-[#111111]">{title}</Text>
         {rows.map((row) => (
-            <View key={row.label} style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{row.label}</Text>
-                <Text style={styles.infoValue}>{row.value}</Text>
+            <View key={row.label} className="min-h-[30px] flex-row items-center justify-between gap-3">
+                <Text className="flex-1 text-base font-semibold text-[#858585]">{row.label}</Text>
+                <Text className="flex-1 text-base font-bold text-[#111111] text-right">{row.value}</Text>
             </View>
         ))}
     </View>
 );
-
-const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: "#eeeeee",
-    },
-    mapStage: {
-        position: "relative",
-        backgroundColor: "#e8e5dc",
-    },
-    mapControls: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        paddingHorizontal: 16,
-        paddingBottom: 8,
-    },
-    searchRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-    },
-    backButton: {
-        width: 48,
-        height: 48,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 24,
-        backgroundColor: "#ffffff",
-        elevation: 3,
-    },
-    backArrow: {
-        color: "#111111",
-        fontSize: 30,
-        lineHeight: 34,
-    },
-    addressField: {
-        height: 54,
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        borderWidth: 1,
-        borderColor: "#3e3e3e",
-        borderRadius: 16,
-        backgroundColor: "#ffffff",
-        paddingHorizontal: 10,
-        elevation: 3,
-    },
-    locationIcon: {
-        width: 28,
-        height: 34,
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: 8,
-        borderRadius: 14,
-        backgroundColor: "#393939",
-    },
-    locationDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: "#ffffff",
-    },
-    addressInput: {
-        flex: 1,
-        padding: 0,
-        color: "#333333",
-        fontSize: 14,
-        fontWeight: "600",
-    },
-    searchButton: {
-        minWidth: 52,
-        height: 48,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 14,
-        backgroundColor: "#e8f5ef",
-    },
-    searchButtonText: {
-        color: "#16835d",
-        fontSize: 14,
-        fontWeight: "700",
-    },
-    locationError: {
-        marginTop: 8,
-        borderRadius: 10,
-        backgroundColor: "#ffffff",
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        color: "#b42318",
-        fontSize: 13,
-    },
-    locateButton: {
-        position: "absolute",
-        right: 18,
-        bottom: 38,
-        width: 48,
-        height: 48,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 24,
-        backgroundColor: "#ffffff",
-        elevation: 4,
-    },
-    locateIcon: {
-        color: "#16835d",
-        fontSize: 31,
-        lineHeight: 35,
-    },
-    bottomSheet: {
-        flex: 1,
-        marginTop: -22,
-        overflow: "hidden",
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        backgroundColor: "#f4f4f4",
-    },
-    detailsContent: {
-        paddingTop: 10,
-        paddingBottom: 14,
-    },
-    detailsScroll: {
-        flex: 1,
-    },
-    sheetHandle: {
-        alignSelf: "center",
-        width: 72,
-        height: 5,
-        marginBottom: 24,
-        borderRadius: 3,
-        backgroundColor: "#858585",
-    },
-    infoSection: {
-        paddingHorizontal: 22,
-        paddingBottom: 14,
-    },
-    sectionTitle: {
-        marginBottom: 8,
-        color: "#111111",
-        fontSize: 18,
-        fontWeight: "700",
-    },
-    infoRow: {
-        minHeight: 30,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-    },
-    infoLabel: {
-        flex: 1,
-        color: "#858585",
-        fontSize: 16,
-        fontWeight: "600",
-    },
-    infoValue: {
-        flex: 1,
-        color: "#111111",
-        fontSize: 16,
-        fontWeight: "700",
-        textAlign: "right",
-    },
-    sectionDivider: {
-        height: 8,
-        marginBottom: 10,
-        backgroundColor: "#e7e7e7",
-    },
-    orderFooter: {
-        borderTopWidth: 1,
-        borderTopColor: "#e9e9e9",
-        backgroundColor: "#f7f7f7",
-        paddingHorizontal: 22,
-        paddingTop: 10,
-        paddingBottom: 8,
-    },
-    optionRow: {
-        height: 48,
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 8,
-    },
-    optionButton: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-    },
-    optionIcon: {
-        color: "#333333",
-        fontSize: 23,
-        fontWeight: "700",
-    },
-    optionText: {
-        color: "#555555",
-        fontSize: 16,
-    },
-    optionSelected: {
-        color: "#222222",
-        fontWeight: "600",
-    },
-    optionDivider: {
-        width: 1,
-        height: 34,
-        marginHorizontal: 16,
-        backgroundColor: "#d4d4d4",
-    },
-    priceRow: {
-        minHeight: 78,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-    },
-    priceDetails: {
-        flex: 1,
-    },
-    priceTitle: {
-        color: "#111111",
-        fontSize: 17,
-        fontWeight: "700",
-    },
-    priceEstimate: {
-        marginTop: 3,
-        color: "#38c98d",
-        fontSize: 17,
-        fontWeight: "700",
-    },
-    orderButton: {
-        minWidth: 145,
-        minHeight: 58,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 13,
-        backgroundColor: "#a9dfff",
-        paddingHorizontal: 18,
-    },
-    orderButtonText: {
-        color: "#111111",
-        fontSize: 17,
-        fontWeight: "700",
-    },
-});
 
 export default BookScreen;

@@ -8,6 +8,11 @@ import { FormInput } from "../../../../components/InputField";
 import { apiRequest } from "../../../../utils/api";
 type ServiceCategory = (typeof serviceCategories)[number];
 type FormValues = Record<string, string>;
+const paymentMethods: CatalogOption[] = [
+    { id: "cash", label: "Tiền mặt" },
+    { id: "momo", label: "MoMo" },
+    { id: "vnpay", label: "VNPay" },
+];
 
 type ServiceRecord = {
     _id: string;
@@ -18,7 +23,7 @@ type ServiceRecord = {
     estimatedMinutes: number;
 };
 
-const DEFAULT_SERVICE_NAME = "Kiểm tra, chuẩn đoán tại chỗ";
+const DEFAULT_SERVICE_NAME = "Kiểm tra, chẩn đoán tại chỗ";
 
 const service = () => {
     const [activeCategory, setActiveCategory] = useState<ServiceCategory | null>(null);
@@ -96,7 +101,7 @@ const service = () => {
 
     const openForm = (category: ServiceCategory) => {
         setActiveCategory(category);
-        setValues({});
+        setValues({ paymentMethod: "cash" });
         setOpenDropdown(null);
     };
 
@@ -138,7 +143,7 @@ const service = () => {
         if (isPartsRequest) {
             requiredFields.push("sparePartId");
         } else {
-            requiredFields.push("serviceId", "mileage");
+            requiredFields.push("serviceId");
         }
         if (activeCategory.id === "other") requiredFields.push("description");
 
@@ -162,9 +167,9 @@ const service = () => {
                 vehicleMakeId: values.vehicleMake,
                 plate: values.plate.trim(),
                 sparePartId: part.id,
-                mileage: "",
                 description: values.description?.trim() || "",
                 estimatedPrice: String(part.estimatedPrice),
+                paymentMethod: values.paymentMethod || "cash",
             };
             closeForm();
             router.push({ pathname: "/(tabs)/(CustomerTab)/book", params });
@@ -183,9 +188,9 @@ const service = () => {
             plate: values.plate.trim(),
             serviceId: service._id,
             serviceName: service.name,
-            mileage: values.mileage?.trim() || "",
             description: values.description?.trim() || "",
             estimatedPrice: String(service.price),
+            paymentMethod: values.paymentMethod || "cash",
         };
 
         closeForm();
@@ -194,7 +199,7 @@ const service = () => {
 
     const renderSelect = (field: string, label: string, options: CatalogOption[]) => (
         <View key={field} className="mb-3">
-            <Text className="mb-1.5 text-[16px] font-Jakarta-Bold text-black">
+            <Text className="mb-1.5 text-[16px] text-black">
                 {label}<Text className="text-red-500">*</Text>
             </Text>
             <TouchableOpacity
@@ -233,7 +238,7 @@ const service = () => {
             <View className="flex-1 bg-white">
                 <View className="relative w-full h-[250px]">
                     <Image source={images.signUpCar} className="z-0 h-[250px] w-full" />
-                    <Text className="absolute bottom-5 left-5 text-2xl text-black font-Jakarta-ExtraBold">
+                    <Text className="absolute bottom-5 left-5 text-2xl font-bold text-black">
                         Các dịch vụ
                     </Text>
                 </View>
@@ -244,8 +249,7 @@ const service = () => {
                         key={category.id}
                         accessibilityRole="button"
                         onPress={() => openForm(category)}
-                        className="min-h-[145px] flex-1 items-center justify-center rounded-xl bg-[#2795c8] px-2 py-4"
-                    >
+                        className="min-h-[145px] flex-1 items-center justify-center rounded-xl bg-[#2795c8] px-2 py-4">
                         <Text className="text-[38px]">{category.icon}</Text>
                         <Text className="mt-3 text-center text-[14px] text-white">
                             {category.title}
@@ -253,8 +257,8 @@ const service = () => {
                     </TouchableOpacity>
                 ))}
             </View>
-            <View className="bg-white px-4 pb-5">
-                <Text className="mb-3 text-lg font-Jakarta-Bold text-black">
+            <View className="bg-white px-4 pb-5 mt-2">
+                <Text className="mb-3 text-lg text-black font-bold">
                     Dịch vụ hiện có
                 </Text>
                 {isLoadingServices ? (
@@ -270,7 +274,7 @@ const service = () => {
                             onPress={() => setReloadServices((current) => current + 1)}
                             className="mt-3 self-start"
                         >
-                            <Text className="font-Jakarta-Bold text-[#1677a8]">Thử lại</Text>
+                            <Text className="text-[#1677a8]">Thử lại</Text>
                         </TouchableOpacity>
                     </View>
                 ) : services.length === 0 ? (
@@ -279,10 +283,10 @@ const service = () => {
                     services.map((item) => (
                         <View key={item._id} className="mb-2 rounded-xl border border-neutral-200 bg-white p-4">
                             <View className="flex-row items-start justify-between">
-                                <Text className="flex-1 pr-3 text-[16px] font-Jakarta-Bold text-black">
+                                <Text className="flex-1 pr-3 text-[16px] text-black">
                                     {item.name}
                                 </Text>
-                                <Text className="font-Jakarta-Bold text-[#1677a8]">
+                                <Text className="text-[#1677a8]">
                                     {item.price.toLocaleString("vi-VN")} đ
                                 </Text>
                             </View>
@@ -308,7 +312,7 @@ const service = () => {
                 >
                     <View className="w-full max-h-[88%] rounded-[36px] bg-white px-5 pb-5 pt-4">
                         <View className="mb-3 min-h-10 flex-row items-center justify-center">
-                            <Text className="flex-1 text-center text-[16px] font-Jakarta-Bold text-black">
+                            <Text className="flex-1 text-center text-[16px] text-black font-bold">
                                 {activeCategory?.id === "repair" ? "Đơn thông tin bảo dưỡng" : activeCategory?.id === "parts" ? "Đơn thông tin thay phụ tùng" : "Đơn thông tin các vấn đề"}
                             </Text>
                             <TouchableOpacity
@@ -317,7 +321,7 @@ const service = () => {
                                 onPress={closeForm}
                                 className="absolute right-0 h-10 w-10 items-center justify-center"
                             >
-                                <Text className="text-[30px] leading-9 text-black">×</Text>
+                                <Text className="text-[30px] leading-9 text-black">x</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -340,9 +344,10 @@ const service = () => {
                                                     Không có phụ tùng nào phù hợp với loại xe này.
                                                 </Text>
                                             ) : null}
+                                            {renderSelect("paymentMethod", "Phương thức thanh toán", paymentMethods)}
                                             {selectedPart ? (
                                                 <View className="mb-3 rounded-xl bg-[#eaf7fc] p-3">
-                                                    <Text className="font-Jakarta-Bold text-[#1677a8]">
+                                                    <Text className="text-[#1677a8]">
                                                         Giá dự kiến: {selectedPart.estimatedPrice.toLocaleString("vi-VN")} đ
                                                     </Text>
                                                 </View>
@@ -385,13 +390,13 @@ const service = () => {
                                                         onPress={() => setReloadServices((current) => current + 1)}
                                                         className="mt-2 self-start"
                                                     >
-                                                        <Text className="font-Jakarta-Bold text-[#1677a8]">Tải lại</Text>
+                                                        <Text className="text-[#1677a8]">Tải lại</Text>
                                                     </TouchableOpacity>
                                                 </View>
                                             ) : null}
                                             {selectedService ? (
                                                 <View className="mb-3 rounded-xl bg-[#eaf7fc] p-3">
-                                                    <Text className="font-Jakarta-Bold text-[#1677a8]">
+                                                    <Text className="text-[#1677a8]">
                                                         Giá dự kiến: {selectedService.price.toLocaleString("vi-VN")} đ
                                                     </Text>
                                                     <Text className="mt-1 text-sm text-[#555]">
@@ -402,6 +407,7 @@ const service = () => {
                                                     ) : null}
                                                 </View>
                                             ) : null}
+                                            {renderSelect("paymentMethod", "Phương thức thanh toán", paymentMethods)}
                                         </>
                                     )}
                                 </>
@@ -414,16 +420,6 @@ const service = () => {
                                 onChangeText={(value) => updateValue("plate", value)}
                                 placeholder="Nhập biển số xe"
                             />
-                            {activeCategory?.id !== "parts" ? (
-                                <FormInput
-                                    label="Số Km hiện tại"
-                                    required
-                                    value={values.mileage || ""}
-                                    onChangeText={(value) => updateValue("mileage", value)}
-                                    placeholder="Nhập số Km hiện tại"
-                                    keyboardType="numeric"
-                                />
-                            ) : null}
                             <FormInput
                                 label="Mô tả"
                                 required={activeCategory?.id === "other"}

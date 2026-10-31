@@ -5,13 +5,12 @@ import {
     FlatList,
     Pressable,
     RefreshControl,
-    StyleSheet,
     Text,
     View,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { apiRequest } from "../../../../utils/api";
-
+import BackButton from "../../../../components/BackButton";
 type Customer = {
     fullName: string;
     phone?: string;
@@ -37,8 +36,12 @@ type Order = {
 };
 
 const HaveBookScreen = () => {
+    const params = useLocalSearchParams<{ orderId?: string | string[] }>();
+    const requestedOrderId = Array.isArray(params.orderId)
+        ? params.orderId[0]
+        : params.orderId;
     const [orders, setOrders] = useState<Order[]>([]);
-    const [now, setNow] = useState(Date.now());
+    const [now, setNow] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [workingId, setWorkingId] = useState<string | null>(null);
@@ -64,6 +67,7 @@ const HaveBookScreen = () => {
                 );
             } finally {
                 loading.current = false;
+                setNow(Date.now());
                 setIsLoading(false);
                 setRefreshing(false);
             }
@@ -101,8 +105,7 @@ const HaveBookScreen = () => {
         try {
             await apiRequest(`/orders/${orderId}/accept`, { method: "PUT" });
             setOrders((current) => current.filter((order) => order._id !== orderId));
-            Alert.alert("Đã nhận đơn", "Đơn hàng đã được giao cho bạn.");
-            void loadOrders();
+            router.replace("/(tabs)/(MechanicTab)/home");
         } catch (error) {
             Alert.alert(
                 "Không nhận được đơn",
@@ -134,33 +137,45 @@ const HaveBookScreen = () => {
     const visibleOrders = orders.filter(
         (order) => Date.parse(order.offerExpiresAt) > now
     );
+    const prioritizedOrders = requestedOrderId
+        ? [...visibleOrders].sort(
+            (first, second) =>
+                Number(second._id === requestedOrderId) -
+                Number(first._id === requestedOrderId),
+        )
+        : visibleOrders;
 
     if (isLoading) {
         return (
-            <View style={styles.center}>
+            <View className="flex-1 items-center justify-center gap-2">
                 <ActivityIndicator />
-                <Text style={styles.muted}>Đang tải đơn hàng...</Text>
+                <Text className="text-center text-[#666666]">Đang tải đơn hàng...</Text>
             </View>
         );
     }
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Đơn đang chờ</Text>
+        <View className="flex-1 bg-[#f7f8fa]">
+            <View className="min-h-14 flex-row items-center justify-center mt-10 bg-[#9dccf5]">
+                <BackButton style={{ position: "absolute", left: 10 }} />
+                <Text className="text-[20px] font-bold text-[#111111]">Đơn đang chờ</Text>
+            </View>
 
-            {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+            {errorMessage ? (
+                <Text className="mb-3 text-[#b00020]">{errorMessage}</Text>
+            ) : null}
 
             <FlatList
-                data={visibleOrders}
+                data={prioritizedOrders}
                 keyExtractor={(item) => item._id}
-                contentContainerStyle={
-                    visibleOrders.length === 0 ? styles.emptyList : undefined
-                }
+                contentContainerClassName={visibleOrders.length === 0 ? "grow justify-center" : undefined}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={refresh} />
                 }
                 ListEmptyComponent={
-                    <Text style={styles.muted}>Hiện chưa có đơn nào đang chờ.</Text>
+                    <Text className="text-center text-[#666666]">
+                        Hiện chưa có đơn nào đang chờ.
+                    </Text>
                 }
                 renderItem={({ item }) => {
                     const details = item.serviceDetails;
@@ -171,8 +186,18 @@ const HaveBookScreen = () => {
                     const isWorking = workingId === item._id;
 
                     return (
-                        <View style={styles.card}>
-                            <Text style={styles.cardTitle}>
+                        <View
+                            className={`mb-3 gap-2 rounded-xl bg-white p-4 ${item._id === requestedOrderId
+                                ? "border-2 border-[#16835d]"
+                                : ""
+                                }`}
+                        >
+                            {item._id === requestedOrderId ? (
+                                <Text className="font-bold text-[#16835d]">
+                                    Đơn mới dành cho bạn
+                                </Text>
+                            ) : null}
+                            <Text className="text-[17px] font-bold">
                                 {details.category || details.serviceName || "Yêu cầu dịch vụ"}
                             </Text>
 
@@ -197,34 +222,34 @@ const HaveBookScreen = () => {
                                 <Text>Mô tả: {details.description}</Text>
                             ) : null}
 
-                            <Text style={styles.price}>
+                            <Text className="font-bold">
                                 Ước tính: {item.estimatedPrice.toLocaleString("vi-VN")} VND
                             </Text>
 
-                            <Text style={styles.countdown}>
+                            <Text className="font-bold text-[#b54708]">
                                 Thời gian xác nhận còn {secondsLeft} giây
                             </Text>
 
-                            <View style={styles.buttonRow}>
+                            <View className="mt-1 flex-row gap-2.5">
                                 <Pressable
                                     accessibilityRole="button"
                                     disabled={isWorking}
                                     onPress={() => void rejectOrder(item._id)}
-                                    style={[styles.button, styles.rejectButton]}
+                                    className="min-h-11 flex-1 items-center justify-center rounded-lg bg-[#b42318]"
                                 >
-                                    <Text style={styles.buttonText}>Từ chối</Text>
+                                    <Text className="font-bold text-white">Từ chối</Text>
                                 </Pressable>
 
                                 <Pressable
                                     accessibilityRole="button"
                                     disabled={isWorking}
                                     onPress={() => void acceptOrder(item._id)}
-                                    style={[styles.button, styles.acceptButton]}
+                                    className="min-h-11 flex-1 items-center justify-center rounded-lg bg-[#16835d]"
                                 >
                                     {isWorking ? (
                                         <ActivityIndicator color="#fff" />
                                     ) : (
-                                        <Text style={styles.buttonText}>Nhận đơn</Text>
+                                        <Text className="font-bold text-white">Xác nhận đơn</Text>
                                     )}
                                 </Pressable>
                             </View>
@@ -235,76 +260,5 @@ const HaveBookScreen = () => {
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 16,
-        backgroundColor: "#f7f8fa",
-    },
-    center: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-    },
-    title: {
-        marginBottom: 12,
-        fontSize: 22,
-        fontWeight: "700",
-    },
-    card: {
-        gap: 8,
-        marginBottom: 12,
-        padding: 16,
-        borderRadius: 12,
-        backgroundColor: "#fff",
-    },
-    cardTitle: {
-        fontSize: 17,
-        fontWeight: "700",
-    },
-    muted: {
-        color: "#666",
-        textAlign: "center",
-    },
-    error: {
-        marginBottom: 12,
-        color: "#b00020",
-    },
-    price: {
-        fontWeight: "700",
-    },
-    countdown: {
-        color: "#b54708",
-        fontWeight: "700",
-    },
-    buttonRow: {
-        flexDirection: "row",
-        gap: 10,
-        marginTop: 4,
-    },
-    button: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: 44,
-        borderRadius: 8,
-    },
-    acceptButton: {
-        backgroundColor: "#16835d",
-    },
-    rejectButton: {
-        backgroundColor: "#b42318",
-    },
-    buttonText: {
-        color: "#fff",
-        fontWeight: "700",
-    },
-    emptyList: {
-        flexGrow: 1,
-        justifyContent: "center",
-    },
-});
 
 export default HaveBookScreen;

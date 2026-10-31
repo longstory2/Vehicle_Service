@@ -53,7 +53,7 @@ const SignIn = () => {
       <View className="flex-1 bg-white">
         <View className="relative w-full h-[250px]">
           <Image source={images.signUpCar} className="z-0 h-[250px] w-full" />
-          <Text className="absolute bottom-5 left-5 text-2xl text-black font-JakartaSemiBold">
+          <Text className="absolute bottom-5 left-5 text-2xl text-black">
             Đăng nhập
           </Text>
         </View>

@@ -51,7 +51,7 @@ const TechSignUp = () => {
   if (isSubmitted) {
     return (
       <View className="flex-1 items-center justify-center bg-white p-6">
-        <Text className="mb-3 text-center text-2xl font-JakartaSemiBold text-black">
+        <Text className="mb-3 text-center text-2xl text-black">
           Đã gửi hồ sơ đăng ký
         </Text>
         <Text className="mb-6 text-center text-base text-general-200">
@@ -70,7 +70,7 @@ const TechSignUp = () => {
       <View className="flex-1 bg-white">
         <View className="relative h-[250px] w-full">
           <Image source={images.signUpCar} className="z-0 h-[250px] w-full" />
-          <Text className="absolute bottom-5 left-5 text-2xl font-JakartaSemiBold text-black">
+          <Text className="absolute bottom-5 left-5 text-2xl text-black">
             Đăng ký kỹ thuật viên
           </Text>
         </View>

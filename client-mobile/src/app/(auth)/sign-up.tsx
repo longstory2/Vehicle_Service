@@ -54,7 +54,7 @@ const SignUp = () => {
       <View className="flex-1 bg-white">
         <View className="relative w-full h-[250px]">
           <Image source={images.signUpCar} className="z-0 h-[250px] w-full" />
-          <Text className="absolute bottom-5 left-5 text-2xl text-black font-Jakarta-ExtraBold">
+          <Text className="absolute bottom-5 left-5 text-2xl text-black font-bold">
             Tạo tài khoản
           </Text>
         </View>
@@ -110,6 +110,7 @@ const SignUp = () => {
             <Text>Đã có tài khoản? </Text>
             <Text className="text-blue-500">Đăng nhập</Text>
           </Link>
+          <View className="h-[3px] bg-[#e7e7e7]" />
           <CustomButton
             title="Đăng nhập kỹ thuật viên"
             onPress={() => router.replace("/(auth)/sign-in")}
