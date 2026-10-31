@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 import connectDB from "./config/db.js";
 import User from "./models/User.js";
 import Service from "./models/Service.js";
-import Technician from "./models/Technician.js";
 
 dotenv.config(); // đọc file .env
 
@@ -26,13 +25,6 @@ const sampleServices = [
   { name: "Kích bình ắc quy", vehicleType: "car", price: 250000, estimatedMinutes: 20 },
 ];
 
-// Tài khoản mẫu để thử app mobile
-const sampleUsers = [
-  { fullName: "Kỹ thuật viên Mẫu", email: "ktv@vehicle.vn", phone: "0901111111", role: "technician", password: "Ktv@123" },
-  { fullName: "Khách hàng Mẫu", email: "khach@vehicle.vn", phone: "0902222222", role: "customer", password: "Khach@123" },
-];
-
-// MỌI câu truy vấn database phải nằm TRONG hàm này, sau dòng await connectDB()
 const seed = async () => {
   await connectDB();
 
@@ -48,7 +40,12 @@ const seed = async () => {
     console.log(`Đã tạo admin: ${email}`);
   }
 
-  // 2. Tạo tài khoản mẫu (chỉ tạo khi chưa có)
+  // 2. Tạo tài khoản mẫu để thử app mobile (chỉ tạo khi chưa có)
+  // Tạo sẵn tài khoản kỹ thuật viên mẫu đã được duyệt để thử app mobile
+  const sampleUsers = [
+    { fullName: "Kỹ thuật viên Mẫu", email: "ktv@vehicle.vn", phone: "0901111111", role: "technician", password: "Ktv@123" },
+    { fullName: "Khách hàng Mẫu", email: "khach@vehicle.vn", phone: "0902222222", role: "customer", password: "Khach@123" },
+  ];
   for (const { password, ...info } of sampleUsers) {
     if (await User.findOne({ email: info.email })) {
       console.log(`Tài khoản ${info.email} đã tồn tại, bỏ qua`);
@@ -66,19 +63,6 @@ const seed = async () => {
     await Service.updateOne({ name, vehicleType }, { $setOnInsert: rest }, { upsert: true });
   }
   console.log(`Đã kiểm tra ${sampleServices.length} dịch vụ mẫu`);
-
-  // 4. Hồ sơ nghề nghiệp cho kỹ thuật viên mẫu (nếu chưa có)
-  const sampleTech = await User.findOne({ email: "ktv@vehicle.vn" });
-  if (sampleTech && !(await Technician.findOne({ userId: sampleTech._id }))) {
-    // Gán sẵn các dịch vụ xe máy làm kỹ năng
-    const motorbikeServices = await Service.find({ vehicleType: "motorbike" }).select("_id");
-    await Technician.create({
-      userId: sampleTech._id,
-      specialty: "motorbike",
-      skills: motorbikeServices.map((s) => s._id),
-    });
-    console.log("Đã tạo hồ sơ cho kỹ thuật viên mẫu");
-  }
 
   await mongoose.disconnect(); // đóng kết nối để lệnh kết thúc
 };

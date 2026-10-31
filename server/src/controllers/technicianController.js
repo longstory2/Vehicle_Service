@@ -1,7 +1,6 @@
 import User from "../models/User.js";
 import Technician from "../models/Technician.js";
 import { normalizePhone } from "../utils/phone.js";
-
 // =====================================================================
 // Kỹ thuật viên lưu ở 2 nơi:
 //   - users: tài khoản đăng nhập, trạng thái duyệt, khóa, sẵn sàng nhận đơn (isAcceptingOrders)
@@ -26,13 +25,13 @@ const toTechnicianView = (user, profile) => ({
   createdAt: user.createdAt,
   profile: profile
     ? {
-        _id: profile._id,
-        specialty: profile.specialty,
-        skills: profile.skills, // đã populate: [{ _id, name, vehicleType }]
-        radiusKm: profile.radiusKm,
-        ratingAvg: profile.ratingAvg,
-        ratingCount: profile.ratingCount,
-      }
+      _id: profile._id,
+      specialty: profile.specialty,
+      skills: profile.skills, // đã populate: [{ _id, name, vehicleType }]
+      radiusKm: profile.radiusKm,
+      ratingAvg: profile.ratingAvg,
+      ratingCount: profile.ratingCount,
+    }
     : null,
 });
 
@@ -147,7 +146,7 @@ export const updateTechnician = async (req, res) => {
   });
 };
 
-// GET /api/technicians/pending - Hồ sơ ứng viên đang chờ duyệt (người tự đăng ký trên app)
+
 export const getPendingTechnicians = async (_req, res) => {
   const technicians = await User.find({
     role: "technician",
@@ -212,7 +211,9 @@ export const updateMyAvailability = async (req, res) => {
 
   res.json({
     success: true,
-    message: isAcceptingOrders ? "Đã bật nhận đơn" : "Đã tắt nhận đơn",
+    message: isAcceptingOrders
+      ? "Đã bật nhận đơn"
+      : "Đã tắt nhận đơn",
     data: { isAcceptingOrders: req.user.isAcceptingOrders },
   });
 };

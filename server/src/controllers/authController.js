@@ -154,6 +154,7 @@ export const updateMe = async (req, res) => {
   await user.save(); // save() chạy lại kiểm tra dữ liệu và ràng buộc trùng
   res.json({ success: true, message: "Đã cập nhật thông tin", data: toPublicUser(user) });
 };
+
 // PUT /api/auth/change-password - Người dùng tự đổi mật khẩu (cần token)
 // Body: { "currentPassword": "...", "newPassword": "..." }
 // Kỹ thuật viên dùng ở lần đăng nhập đầu (mustChangePassword = true)
