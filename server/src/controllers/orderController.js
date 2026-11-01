@@ -225,9 +225,11 @@ export const getOrderById = async (req, res) => {
         });
     }
 
-    const isCustomer = order.customerId.toString() === req.user._id.toString();
-    const isAssignedTechnician =
-        order.technicianId?._id.toString() === req.user._id.toString();
+    const customerId = order.customerId?._id ?? order.customerId;
+    const technicianId = order.technicianId?._id ?? order.technicianId;
+    const requesterId = req.user._id.toString();
+    const isCustomer = customerId?.toString() === requesterId;
+    const isAssignedTechnician = technicianId?.toString() === requesterId;
 
     if (!isCustomer && !isAssignedTechnician) {
         return res.status(404).json({
