@@ -6,7 +6,7 @@ import technicianRoutes from "./routes/technicianRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
-
+import adminRoutes from "./routes/adminRoutes.js";
 const app = express();
 
 // Cho phép Admin Web (chạy ở cổng khác) gọi API
@@ -33,7 +33,7 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/technicians", technicianRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
-
+app.use("/api/admin", adminRoutes);
 // ===== Xử lý lỗi (luôn đặt CUỐI CÙNG, sau mọi route) =====
 app.use(notFound);
 app.use(errorHandler);
