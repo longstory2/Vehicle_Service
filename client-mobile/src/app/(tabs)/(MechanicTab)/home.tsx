@@ -2,7 +2,7 @@ import { useAuth } from "../../../../context/AuthContext";
 import { Redirect, router, useFocusEffect, useNavigation } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiRequest } from "../../../../utils/api";
-import { ActivityIndicator, Alert, ImageSourcePropType, Pressable, Text, TextInput, View, Image, useWindowDimensions, Linking } from "react-native";
+import { ActivityIndicator, Alert, ImageSourcePropType, Pressable, Text, TextInput, TouchableOpacity, View, Image, useWindowDimensions, Linking } from "react-native";
 import * as Location from "expo-location";
 import LeafletMap from "../../../../components/LeafletMap";
 import { icons } from "../../../../constants/icon";
@@ -10,7 +10,24 @@ import DraggableOrderSheet from "../../../../components/DraggableOrderSheet";
 import InfoSection from "../../../../components/InfoSection";
 import { useLocationSearch, type PickupLocation } from "../../../../utils/useLocationSearch";
 import { isWithinHoChiMinhBounds } from "../../../../constants/serviceArea";
-import { spareParts } from "../../../../constants/data";
+
+type ServiceRecord = {
+    _id: string;
+    name: string;
+    price: number;
+    vehicleType: "motorbike" | "car";
+};
+
+const normalizeVehicleType = (vehicleType: string) => {
+    const normalized = vehicleType.trim().toLocaleLowerCase("vi");
+    if (normalized === "motorbike" || normalized === "motorcycle" || normalized === "xe máy") {
+        return "motorbike";
+    }
+    if (normalized === "car" || normalized === "ô tô" || normalized === "o to") {
+        return "car";
+    }
+    return normalized;
+};
 
 type ActiveOrder = {
     _id: string;
@@ -31,6 +48,7 @@ type ActiveOrder = {
     } | null;
     estimatedPrice: number;
     totalPrice?: number;
+    paymentMethod: "cash" | "momo" | "vnpay";
     partsProposal?: {
         name: string;
         quantity: number;
@@ -96,14 +114,47 @@ const MechanicHome = () => {
     const [partQuantity, setPartQuantity] = useState("1");
     const [partUnitPrice, setPartUnitPrice] = useState("");
     const [selectedPartId, setSelectedPartId] = useState("");
+    const [openDropdown, setOpenDropdown] = useState(false);
+    const [services, setServices] = useState<ServiceRecord[]>([]);
+    const [isLoadingServices, setIsLoadingServices] = useState(true);
+    const [servicesError, setServicesError] = useState("");
     const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
     const lastOpenedAvailableOrderId = useRef<string | null>(null);
-    const availableParts = spareParts.filter((part) => {
+    const availableServices = services.filter((service) => {
+        if (service.name.trim().toLocaleLowerCase("vi") === "kiểm tra, chẩn đoán tại chỗ") {
+            return false;
+        }
         const vehicleType = activeOrder?.serviceDetails.vehicleType;
         if (!vehicleType) return true;
-        const normalizedVehicleType = vehicleType === "motorbike" ? "motorcycle" : vehicleType;
-        return part.vehicleTypeIds.includes(normalizedVehicleType);
+        const normalizedVehicleType = normalizeVehicleType(vehicleType);
+        return service.vehicleType === normalizedVehicleType;
     });
+
+    useEffect(() => {
+        let isCurrent = true;
+
+        const loadServices = async () => {
+            setIsLoadingServices(true);
+            setServicesError("");
+            try {
+                const data = await apiRequest<ServiceRecord[]>("/services");
+                if (isCurrent) setServices(data);
+            } catch (error) {
+                if (isCurrent) {
+                    setServicesError(
+                        error instanceof Error ? error.message : "Không thể tải danh sách dịch vụ.",
+                    );
+                }
+            } finally {
+                if (isCurrent) setIsLoadingServices(false);
+            }
+        };
+
+        void loadServices();
+        return () => {
+            isCurrent = false;
+        };
+    }, []);
     const toggleAvailability = async () => {
         const nextValue = !isAcceptingOrders;
 
@@ -459,6 +510,11 @@ const MechanicHome = () => {
 
     if (activeOrder) {
         const details = activeOrder.serviceDetails;
+        const additionalPartsCost = activeOrder.additionalParts?.reduce(
+            (total, part) => total + part.quantity * part.unitPrice,
+            0,
+        ) ?? 0;
+        const currentTotalPrice = activeOrder.totalPrice ?? activeOrder.estimatedPrice;
         const mechanicStatusText = {
             ACCEPTED: "Đã xác nhận đơn",
             ARRIVED: "Đã đến vị trí khách",
@@ -511,7 +567,6 @@ const MechanicHome = () => {
                     <InfoSection
                         title="Thông tin khách hàng"
                         icon={icons.person}
-                        // variant="customer"
                         rows={[
                             { label: "Tên khách hàng", value: activeOrder.customerId?.fullName ?? "Khách hàng" },
                             { label: "Số điện thoại", value: activeOrder.customerId?.phone ?? "Chưa cung cấp" },
@@ -563,7 +618,7 @@ const MechanicHome = () => {
                     <InfoSection
                         title="Thông tin yêu cầu"
                         icon={icons.info}
-                        // variant="customer"
+                        variant="customer"
                         rows={[
                             { label: "Loại xe", value: details.vehicleType || "Chưa cung cấp" },
                             { label: "Hãng xe", value: details.vehicleMake || "Chưa cung cấp" },
@@ -571,9 +626,56 @@ const MechanicHome = () => {
                             { label: "Dịch vụ", value: details.serviceName || details.category || "Chưa cung cấp" },
                             { label: "Phụ tùng", value: details.sparePart || "Không có" },
                             { label: "Mô tả", value: details.description || "Không có" },
-                            { label: "Giá ước tính", value: `${activeOrder.estimatedPrice.toLocaleString("vi-VN")}đ` },
-                        ]}
-                    />
+                        ]} />
+                    <View className="mx-[-22px] mt-3 h-[7px] bg-[#e7e7e7]" />
+                    <View>
+                        <InfoSection
+                            title="Thanh toán"
+                            rows={[
+                                {
+                                    label: "Phương thức",
+                                    value: activeOrder.paymentMethod === "cash"
+                                        ? "Tiền mặt"
+                                        : activeOrder.paymentMethod === "momo"
+                                            ? "MoMo"
+                                            : activeOrder.paymentMethod === "vnpay"
+                                                ? "VNPay"
+                                                : activeOrder.paymentMethod,
+                                },
+                                {
+                                    label: "Giá ước tính",
+                                    value: `${activeOrder.estimatedPrice.toLocaleString("vi-VN")}đ`,
+                                },
+                            ]}
+                        />
+                        {activeOrder.additionalParts?.length ? (
+                            <View className="rounded-xl">
+                                <Text className="mb-2 text-base font-bold text-[#111111]">Chi phí phát sinh</Text>
+                                {activeOrder.additionalParts.map((part, index) => (
+                                    <View
+                                        key={`${part.name}-${index}`}
+                                        className="flex-row items-center justify-between border-b border-[#e1e6eb] py-2"
+                                    >
+                                        <View className="flex-1 pr-3">
+                                            <Text className="text-[15px] font-semibold text-[#111111]">{part.name}</Text>
+                                            <Text className="mt-0.5 text-[13px] text-[#666666]">
+                                                {part.quantity} x {part.unitPrice.toLocaleString("vi-VN")}đ
+                                            </Text>
+                                        </View>
+                                        <Text className="text-[15px] font-bold text-[#24527a]">
+                                            {(part.quantity * part.unitPrice).toLocaleString("vi-VN")}đ
+                                        </Text>
+                                    </View>
+                                ))}
+                            </View>
+                        ) : null}
+                        <View className="mt-2 flex-row items-center justify-between pt-2">
+                            <Text className="text-[15px] font-bold text-[#111111]">Tổng tiền</Text>
+                            <Text className="text-base font-bold text-[#16835d]">
+                                {currentTotalPrice.toLocaleString("vi-VN")}đ
+                            </Text>
+                        </View>
+                    </View>
                     <Text className="mb-2 text-base font-bold text-[#16835d]">{mechanicStatusText}</Text>
                     {activeOrder.status === "ACCEPTED" ? (
                         <Pressable
@@ -587,79 +689,78 @@ const MechanicHome = () => {
                     ) : null}
                     {activeOrder.status === "INSPECTING" ? (
                         <View className="mt-3 rounded-xl bg-[#f4f7fb] p-3.5">
-                            <Text className="mb-2 text-base font-bold text-[#111111]">Các dịch vụ</Text>
+                            <Text className="mb-2 text-base font-bold text-[#111111]">Chi phí phát sinh</Text>
                             <Text className="mb-2.5 text-[14px] text-[#555555]">Chọn phụ tùng cần thay</Text>
-                            <View className="mb-2.5 gap-2">
-                                {availableParts.map((part) => {
-                                    const isSelected = selectedPartId === part.id;
-                                    return (
-                                        <Pressable
-                                            key={part.id}
+                            <View className="mb-2.5 flex-row items-start gap-2">
+                                {isLoadingServices ? (
+                                    <ActivityIndicator className="flex-1" color="#16835d" />
+                                ) : servicesError ? (
+                                    <Text accessibilityRole="alert" className="flex-1 text-[14px] text-[#b42318]">
+                                        {servicesError}
+                                    </Text>
+                                ) : availableServices.length === 0 ? (
+                                    <Text className="flex-1 text-[14px] text-[#555555]">
+                                        Chưa có dịch vụ phù hợp với loại xe này.
+                                    </Text>
+                                ) : (
+                                    <View className="flex-1">
+                                        <TouchableOpacity
                                             accessibilityRole="button"
-                                            accessibilityState={{ selected: isSelected }}
-                                            onPress={() => {
-                                                setSelectedPartId(part.id);
-                                                setPartName(part.id === "other" ? "" : part.label);
-                                                setPartUnitPrice(
-                                                    part.id === "other" ? "" : String(part.estimatedPrice),
-                                                );
-                                            }}
-                                            className={`min-h-[46px] flex-row items-center justify-between rounded-lg border px-3 ${isSelected
-                                                ? "border-[#16835d] bg-[#e8f5ef]"
-                                                : "border-[#d0d5dd] bg-white"
-                                                }`}
+                                            accessibilityLabel="Phụ tùng cần thay"
+                                            onPress={() => setOpenDropdown((isOpen) => !isOpen)}
+                                            className="min-h-[46px] flex-row items-center justify-between rounded-lg border border-[#d0d5dd] bg-white px-3"
                                         >
-                                            <Text className="text-[15px] text-[#111111]">{part.label}</Text>
-                                            <Text className="text-[14px] font-semibold text-[#555555]">
-                                                {part.estimatedPrice > 0
-                                                    ? `${part.estimatedPrice.toLocaleString("vi-VN")}đ`
-                                                    : "Tự nhập giá"}
+                                            <Text
+                                                numberOfLines={1}
+                                                className={`flex-1 text-[15px] ${selectedPartId ? "text-[#111111]" : "text-[#929292]"}`}
+                                            >
+                                                {availableServices.find((service) => service._id === selectedPartId)?.name || "Chọn phụ tùng"}
                                             </Text>
-                                        </Pressable>
-                                    );
-                                })}
-                            </View>
-                            {selectedPartId === "other" ? (
-                                <TextInput
-                                    accessibilityLabel="Tên phụ tùng khác"
-                                    value={partName}
-                                    onChangeText={setPartName}
-                                    placeholder="Tên phụ tùng"
-                                    className="mb-2.5 min-h-[46px] rounded-lg border border-[#d0d5dd] bg-white px-3 text-[#111111]"
-                                />
-                            ) : null}
-                            <View className="flex-row gap-2">
+                                            <Text className="ml-2 text-[20px] text-black">{openDropdown ? "⌃" : "⌄"}</Text>
+                                        </TouchableOpacity>
+                                        {openDropdown ? (
+                                            <View className="mt-1 rounded-lg border border-[#d0d5dd] bg-white">
+                                                {availableServices.map((service) => (
+                                                    <TouchableOpacity
+                                                        key={service._id}
+                                                        accessibilityRole="button"
+                                                        onPress={() => {
+                                                            setSelectedPartId(service._id);
+                                                            setPartName(service.name);
+                                                            setPartUnitPrice(String(service.price));
+                                                            setOpenDropdown(false);
+                                                        }}
+                                                        className="border-b border-[#edf0f2] px-3 py-3 last:border-b-0"
+                                                    >
+                                                        <Text className="text-[15px] text-[#111111]">
+                                                            {service.name} — {service.price.toLocaleString("vi-VN")}đ
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
+                                        ) : null}
+                                    </View>
+                                )}
                                 <TextInput
                                     accessibilityLabel="Số lượng phụ tùng"
                                     value={partQuantity}
                                     onChangeText={setPartQuantity}
                                     keyboardType="number-pad"
                                     placeholder="Số lượng"
-                                    className="mb-2.5 min-h-[46px] flex-1 rounded-lg border border-[#d0d5dd] bg-white px-3 text-[#111111]"
-                                />
-                                <TextInput
-                                    accessibilityLabel="Đơn giá phụ tùng"
-                                    value={partUnitPrice}
-                                    onChangeText={setPartUnitPrice}
-                                    keyboardType="number-pad"
-                                    placeholder="Đơn giá (đ)"
-                                    className="mb-2.5 min-h-[46px] flex-[2] rounded-lg border border-[#d0d5dd] bg-white px-3 text-[#111111]"
-                                />
+                                    className="min-h-[46px] w-[72px] rounded-lg border border-[#d0d5dd] bg-white px-3 text-center text-[#111111]" />
                             </View>
                             <Pressable
                                 accessibilityRole="button"
                                 disabled={isUpdatingOrder}
                                 onPress={() => void proposeParts()}
-                                className="min-h-[46px] items-center justify-center rounded-[10px] border border-[#80b5f8] bg-white px-3"
-                            >
+                                className="min-h-[46px] items-center justify-center rounded-[10px] border border-[#80b5f8] bg-white px-3">
                                 <Text className="text-[15px] font-bold text-[#24527a]">Gửi đề xuất phụ tùng</Text>
                             </Pressable>
                             <Pressable
                                 accessibilityRole="button"
                                 disabled={isUpdatingOrder}
                                 onPress={() => void startRepair()}
-                                className="mt-2 items-center justify-center rounded-xl bg-[#80b5f8] py-4"
-                            >
+                                className="mt-2 items-center justify-center rounded-xl bg-[#80b5f8] py-4">
                                 <Text className="text-base font-bold text-[#111111]">Tiến hành sửa chữa</Text>
                             </Pressable>
                         </View>
@@ -669,7 +770,7 @@ const MechanicHome = () => {
                             <Text className="mb-2 text-base font-bold text-[#111111]">Đang chờ khách xác nhận phụ tùng</Text>
                             {activeOrder.partsProposal ? (
                                 <Text className="mb-3 text-[15px] text-[#555555]">
-                                    {activeOrder.partsProposal.name} × {activeOrder.partsProposal.quantity} —{" "}
+                                    {activeOrder.partsProposal.name} x {activeOrder.partsProposal.quantity} —{" "}
                                     {(activeOrder.partsProposal.unitPrice * activeOrder.partsProposal.quantity).toLocaleString("vi-VN")}đ
                                 </Text>
                             ) : null}

@@ -17,6 +17,7 @@ import message from "../assets/icons/message.png"
 import info from "../assets/icons/Info.png"
 import techAvatar from "../assets/icons/TechAvartar.png"
 import carInfo from "../assets/icons/icon.png"
+import total from "../assets/icons/total.png"
 export const icons = {
     home,
     bell,
@@ -37,6 +38,7 @@ export const icons = {
     info,
     techAvatar,
     carInfo,
+    total,
 } as const;
 
 export type IconKey = keyof typeof icons;

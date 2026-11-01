@@ -36,12 +36,12 @@ export const vehicleTypes: CatalogOption[] = [
     { id: "car", label: "Ô tô" },
 ];
 
-export const motorcycleMakes: CatalogOption[] = [
+export const motorbike: CatalogOption[] = [
     { id: "honda", label: "Honda" },
     { id: "yamaha", label: "Yamaha" },
 ];
 
-export const carMakes: CatalogOption[] = [
+export const car: CatalogOption[] = [
     { id: "toyota", label: "Toyota" },
     { id: "mitsubishi", label: "Mitsubishi" },
     { id: "mazda", label: "Mazda" },
@@ -55,7 +55,7 @@ export const carMakes: CatalogOption[] = [
 
 // A combined list keeps existing booking screens able to resolve a selected make ID.
 export const vehicleMakes: CatalogOption[] = Array.from(
-    new Map([...motorcycleMakes, ...carMakes].map((make) => [make.id, make])).values(),
+    new Map([...motorbike, ...car].map((make) => [make.id, make])).values(),
 );
 
 export type SparePartOption = CatalogOption & {
@@ -83,8 +83,8 @@ export const data = {
     serviceCategories,
     vehicleTypes,
     vehicleMakes,
-    motorcycleMakes,
-    carMakes,
+    motorbike,
+    car,
     spareParts,
     serviceEstimatedPrices,
 };

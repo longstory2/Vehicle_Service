@@ -28,7 +28,7 @@ type Order = {
         plate?: string;
     };
     additionalParts?: { name: string; quantity: number; unitPrice: number }[];
-    customerId?: { fullName?: string; } | null;
+    customerId?: { fullName?: string; phone?: string } | null;
     technicianRating?: { score: number | null; comment: string };
 };
 
@@ -153,6 +153,9 @@ const Bill = () => {
                     <Text className="text-[15px] text-[#444444]">
                         Khách hàng: {order.customerId?.fullName || "Chưa có thông tin"}
                     </Text>
+                    <Text className="text-[15px] text-[#444444]">
+                        Số điện thoại: {order.customerId?.phone || "Chưa cung cấp"}
+                    </Text>
                 </View>
 
                 <View className="gap-2.5 rounded-xl bg-white p-4">
@@ -164,7 +167,7 @@ const Bill = () => {
                     {order.additionalParts?.map((part, index) => (
                         <View key={`${part.name}-${index}`} className="flex-row justify-between gap-3">
                             <Text className="text-[15px] text-[#444444]">
-                                {part.name} × {part.quantity}
+                                {part.name} x {part.quantity}
                             </Text>
                             <Text className="text-[15px] text-[#444444]">{formatCurrency(part.unitPrice * part.quantity)}</Text>
                         </View>

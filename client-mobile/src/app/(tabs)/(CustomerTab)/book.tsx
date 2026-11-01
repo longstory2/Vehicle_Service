@@ -177,6 +177,11 @@ const BookScreen = () => {
                             <Text numberOfLines={1} className="mt-3 text-sm text-[#555555]">
                                 {activeOrder.address}
                             </Text>
+                            {activeOrder.additionalParts?.length ? (
+                                <Text numberOfLines={1} className="mt-2 text-sm text-[#555555]">
+                                    Phụ tùng phát sinh: {activeOrder.additionalParts.map((part) => part.name).join(", ")}
+                                </Text>
+                            ) : null}
                             {activeOrder.technicianId ? (
                                 <View className="mt-3 flex-row items-center">
                                     <Image source={icons.techAvatar} className="h-12 w-12 rounded-full" />
@@ -252,31 +257,71 @@ const BookScreen = () => {
                         ]} /> */}
                     {/* <View className="h-2 mb-2.5 bg-[#e7e7e7]" /> */}
                     <InfoSection title="Địa điểm" rows={[{ label: "Địa chỉ", value: activeOrder.address }]} />
+
                     <View className="mx-[-22px] mb-3 h-[7px] bg-[#e7e7e7]" />
                     <InfoSection title="Thông tin xe" rows={orderVehicleRows} />
+
                     <View className="mx-[-22px] mb-3 h-[7px] bg-[#e7e7e7]" />
                     <InfoSection title="Thông tin dịch vụ" rows={orderServiceRows} />
+
                     <View className="mx-[-22px] mb-3 h-[7px] bg-[#e7e7e7]" />
-                    <InfoSection
-                        title="Thanh toán"
-                        rows={[
-                            {
-                                label: "Phương thức",
-                                value: activeOrder.paymentMethod === "cash"
+
+                    <View className="mb-3 rounded-xl bg-[#f4f7fb]">
+                        <Text className="mb-2 text-lg font-bold text-[#111111]">Thanh toán</Text>
+                        <View className="min-h-[30px] flex-row items-center justify-between gap-3">
+                            <Text className="flex-1 text-[15px] font-semibold text-[#858585]">Phương thức</Text>
+                            <Text className="flex-1 text-right text-[15px] font-bold text-[#111111]">
+                                {activeOrder.paymentMethod === "cash"
                                     ? "Tiền mặt"
                                     : activeOrder.paymentMethod === "momo"
                                         ? "MoMo"
                                         : activeOrder.paymentMethod === "vnpay"
                                             ? "VNPay"
-                                            : activeOrder.paymentMethod,
-                            },
-                            {
-                                label: "Ước tính",
-                                value: `${(activeOrder.totalPrice ?? activeOrder.estimatedPrice).toLocaleString("vi-VN")}đ`,
-                            },
-                        ]}
-                    />
-
+                                            : activeOrder.paymentMethod}
+                            </Text>
+                        </View>
+                        <View className="min-h-[30px] flex-row items-center justify-between gap-3">
+                            <Text className="flex-1 text-[15px] font-semibold text-[#858585]">Giá ước tính</Text>
+                            <Text className="flex-1 text-right text-[15px] font-bold text-[#111111]">
+                                {activeOrder.estimatedPrice.toLocaleString("vi-VN")}đ
+                            </Text>
+                        </View>
+                        {activeOrder.additionalParts?.length ? (
+                            <View className="mt-2 border-t border-[#e1e6eb] pt-2">
+                                <Text className="mb-1 text-base font-bold text-[#111111]">Chi phí phát sinh</Text>
+                                {activeOrder.additionalParts.map((part, index) => (
+                                    <View
+                                        key={`${part.name}-${index}`}
+                                        className="flex-row items-center justify-between border-b border-[#e1e6eb] py-2"
+                                    >
+                                        <View className="flex-1 pr-3">
+                                            <Text className="text-[15px] font-semibold text-[#111111]">{part.name}</Text>
+                                            <Text className="mt-0.5 text-[13px] text-[#666666]">
+                                                {part.quantity} x {part.unitPrice.toLocaleString("vi-VN")}đ
+                                            </Text>
+                                        </View>
+                                        <Text className="text-[15px] font-bold text-[#24527a]">
+                                            {(part.quantity * part.unitPrice).toLocaleString("vi-VN")}đ
+                                        </Text>
+                                    </View>
+                                ))}
+                                <View className="mt-2 flex-row items-center justify-between">
+                                    <Text className="text-[14px] font-semibold text-[#555555]">Tổng phát sinh</Text>
+                                    <Text className="text-base font-bold text-[#16835d]">
+                                        {activeOrder.additionalParts
+                                            .reduce((total, part) => total + part.quantity * part.unitPrice, 0)
+                                            .toLocaleString("vi-VN")}đ
+                                    </Text>
+                                </View>
+                            </View>
+                        ) : null}
+                        <View className="mt-2 flex-row items-center justify-between border-t border-[#d5dce2] pt-2">
+                            <Text className="text-[15px] font-bold text-[#111111]">Tổng tiền</Text>
+                            <Text className="text-base font-bold text-[#16835d]">
+                                {(activeOrder.totalPrice ?? activeOrder.estimatedPrice).toLocaleString("vi-VN")}đ
+                            </Text>
+                        </View>
+                    </View>
                     {activeOrder.status === "AWAITING_PARTS_APPROVAL" && activeOrder.partsProposal ? (
                         <View className="mt-3 p-3.5 rounded-xl bg-[#f4f7fb]">
                             <Text className="text-base font-bold text-[#111111]">Kỹ thuật viên đề xuất phụ tùng</Text>

@@ -4,7 +4,6 @@ import {
     PanResponder,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     View,
 } from "react-native";
@@ -106,28 +105,25 @@ const DraggableOrderSheet = ({
 
     return (
         <Animated.View
-            style={[
-                styles.sheet,
-                { height: swipeEnabled ? sheetHeight : expanded ? expandedHeight : collapsedHeight },
-            ]}
+            className="absolute inset-x-0 bottom-0 overflow-hidden rounded-t-[28px] bg-white pb-[22px] elevation-[12]"
+            style={{ height: swipeEnabled ? sheetHeight : expanded ? expandedHeight : collapsedHeight }}
         >
             {swipeEnabled ? (
                 <View
 
-                    style={styles.handleArea}
+                    className="items-center pt-3 pb-2.5"
                     {...panResponder.panHandlers}
                 >
-                    <View style={styles.handle} />
+                    <View className="h-[5px] w-[72px] rounded-[3px] bg-[#858585]" />
                 </View>
             ) : (
                 <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={expanded ? "Thu gọn chi tiết đơn" : "Mở chi tiết đơn"}
                     onPress={() => onExpandedChange(!expanded)}
-                    style={styles.handleArea}
+                    className="items-center pt-3 pb-2.5"
                 >
-                    <View style={styles.handle} />
-                    <Text style={styles.handleHint}>
+                    <View className="h-[5px] w-[72px] rounded-[3px] bg-[#858585]" />
+                    <Text className="mt-[5px] text-[11px] text-[#858585]">
                         {expanded ? "Ấn để thu gọn" : "Ấn để xem chi tiết"}
                     </Text>
                 </Pressable>
@@ -138,7 +134,7 @@ const DraggableOrderSheet = ({
             {expanded ? (
                 <ScrollView
                     bounces={false}
-                    contentContainerStyle={styles.details}
+                    contentContainerClassName="px-[22px] pt-[14px] pb-[22px]"
                     showsVerticalScrollIndicator={false}
                 >
                     {children}
@@ -147,41 +143,5 @@ const DraggableOrderSheet = ({
         </Animated.View>
     );
 };
-
-const styles = StyleSheet.create({
-    sheet: {
-        position: "absolute",
-        right: 0,
-        bottom: 0,
-        left: 0,
-        overflow: "hidden",
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        backgroundColor: "#ffffff",
-        paddingBottom: 22,
-        elevation: 12,
-    },
-    handleArea: {
-        alignItems: "center",
-        paddingTop: 12,
-        paddingBottom: 10,
-    },
-    handle: {
-        width: 72,
-        height: 5,
-        borderRadius: 3,
-        backgroundColor: "#858585",
-    },
-    handleHint: {
-        marginTop: 5,
-        color: "#858585",
-        fontSize: 11,
-    },
-    details: {
-        paddingHorizontal: 22,
-        paddingTop: 14,
-        paddingBottom: 22,
-    },
-});
 
 export default DraggableOrderSheet;

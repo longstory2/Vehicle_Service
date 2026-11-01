@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TouchableOpacity, View, } from "react-native";
 import CustomButton from "../../../../components/CustomButton";
-import { carMakes, motorcycleMakes, serviceCategories, spareParts, vehicleMakes, vehicleTypes, type CatalogOption, } from "../../../../constants/data";
+import { car, motorbike, serviceCategories, spareParts, vehicleMakes, vehicleTypes, type CatalogOption, } from "../../../../constants/data";
 import { images } from "../../../../constants/index";
 import { router } from "expo-router";
 import { FormInput } from "../../../../components/InputField";
@@ -45,9 +45,9 @@ const service = () => {
     );
     const selectedPart = compatibleParts.find((item) => item.id === values.sparePartId);
     const compatibleMakes = values.vehicleType === "motorcycle"
-        ? motorcycleMakes
+        ? motorbike
         : values.vehicleType === "car"
-            ? carMakes
+            ? car
             : vehicleMakes;
 
     useEffect(() => {
