@@ -65,7 +65,7 @@ const CustomerHistory = () => {
         <View className="flex-1 bg-[#f7f8fa]">
             <View className="min-h-14 flex-row items-center justify-center mt-10 bg-[#9dccf5]">
                 <BackButton style={{ position: "absolute", left: 10 }} />
-                <Text className="text-[20px] font-bold text-[#111111]">Lịch sử đơn hàng</Text>
+                <Text className="text-[20px] font-bold text-[#111111]">Lịch sử đơn đặt</Text>
             </View>
             {error ? <Text accessibilityRole="alert" className="mb-2.5 text-[#b42318]">{error}</Text> : null}
             <FlatList

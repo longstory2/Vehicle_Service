@@ -182,7 +182,7 @@ const MechanicHome = () => {
                 Alert.alert("Cần quyền vị trí", "Hãy cấp quyền vị trí để tìm vị trí hiện tại.");
                 return;
             }
-
+            // Lấy vị trí của kỹ thuật viên
             const position = await Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.Balanced,
             });
@@ -308,6 +308,7 @@ const MechanicHome = () => {
     }, [hasActiveOrder, navigation]);
 
     const activeOrderId = activeOrder?._id;
+
     const activeOrderStatus = activeOrder?.status;
     const activeOrderAddress = activeOrder?.address;
 
@@ -321,6 +322,7 @@ const MechanicHome = () => {
         let isCancelled = false;
         let subscription: Location.LocationSubscription | null = null;
 
+        //  Theo dõi liên tục
         const startLocationUpdates = async () => {
             try {
                 const permission = await Location.requestForegroundPermissionsAsync();
