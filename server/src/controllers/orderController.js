@@ -215,6 +215,7 @@ export const getOrderById = async (req, res) => {
 
     const order = await Order.findById(id)
         .populate("technicianId", "fullName phone")
+        .populate("customerId", "fullName phone")
         .lean();
 
     if (!order) {
