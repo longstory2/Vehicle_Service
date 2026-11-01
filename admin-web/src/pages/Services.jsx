@@ -111,7 +111,7 @@ export default function Services() {
     <Box>
       {/* Tiêu đề + nút thêm */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="h5" fontWeight={600}>
+        <Typography variant="h5" sx={{ fontWeight: 600 }}>
           Quản lý dịch vụ
         </Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
