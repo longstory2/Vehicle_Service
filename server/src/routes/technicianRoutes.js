@@ -7,6 +7,7 @@ import {
     approveTechnician,
     getMyAvailability,
     updateMyAvailability,
+    updateMyLocation,
 } from "../controllers/technicianController.js";
 import { authorize, protect } from "../middleware/authMiddleware.js";
 
