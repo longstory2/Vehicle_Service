@@ -7,6 +7,7 @@ import {
     approveTechnician,
     getMyAvailability,
     updateMyAvailability,
+    updateMyLocation,
 } from "../controllers/technicianController.js";
 import { authorize, protect } from "../middleware/authMiddleware.js";
 
@@ -17,7 +18,7 @@ const router = Router();
 // ----- Kỹ thuật viên tự dùng trên app mobile -----
 router.get("/availability", protect, authorize("technician"), getMyAvailability);
 router.put("/availability", protect, authorize("technician"), updateMyAvailability);
-
+router.put("/location", protect, authorize("technician"), updateMyLocation); // PUT /api/technicians/location
 // ----- Admin Web -----
 router.get("/pending", protect, authorize("admin"), getPendingTechnicians); //   GET  /api/technicians/pending (hồ sơ chờ duyệt)
 router.get("/", protect, authorize("admin"), getTechnicians); //                 GET  /api/technicians (đã duyệt)
