@@ -1,5 +1,5 @@
 import User from "../models/User.js";
-
+import { dispatchOrder, markTechnicianSeen } from "../services/dispatcher.js";
 // GET /api/users/customers?search=... - Danh sách khách hàng, tìm theo tên / SĐT / email
 export const getCustomers = async (req, res) => {
   const { search } = req.query;

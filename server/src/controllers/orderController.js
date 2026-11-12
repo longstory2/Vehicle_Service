@@ -74,6 +74,7 @@ export const createOrder = async (req, res) => {
         paymentMethod: paymentMethod ?? "cash",
         status: "PENDING",
     });
+    await dispatchOrder(order._id).catch((error) => console.error("[Ghép cặp]", error.message));
 
     res.status(201).json({
         success: true,
@@ -85,71 +86,16 @@ export const createOrder = async (req, res) => {
 const OFFER_DURATION_MS = 30_000;
 
 export const getAvailableOrders = async (req, res) => {
+    // Ghi nhận kỹ thuật viên đang mở app (+ vị trí nếu app gửi ?lat=&lng=)
+    // để bộ ghép cặp biết ai đang trực và ở đâu
+    await markTechnicianSeen(req.user._id, req.query.lat, req.query.lng);
+
     if (req.user.isAcceptingOrders === false) {
         return res.json({ success: true, data: [] });
     }
 
-    const cutoff = new Date(Date.now() - OFFER_DURATION_MS);
-
-    // Đánh dấu offer đã hết hạn với riêng kỹ thuật viên đang hỏi danh sách.
-    await Order.updateMany(
-        {
-            status: "PENDING",
-            offers: {
-                $elemMatch: {
-                    technicianId: req.user._id,
-                    response: "PENDING",
-                    offeredAt: { $lte: cutoff },
-                },
-            },
-        },
-        { $set: { "offers.$[offer].response": "EXPIRED" } },
-        {
-            arrayFilters: [
-                {
-                    "offer.technicianId": req.user._id,
-                    "offer.response": "PENDING",
-                    "offer.offeredAt": { $lte: cutoff },
-                },
-            ],
-        }
-    );
-
-    // Ghi offer lần đầu khi đơn được hiển thị cho kỹ thuật viên.
-    const newOrders = await Order.find({
-        status: "PENDING",
-        technicianId: null,
-        offers: {
-            $not: {
-                $elemMatch: { technicianId: req.user._id },
-            },
-        },
-    }).select("_id");
-
-    for (const order of newOrders) {
-        await Order.updateOne(
-            {
-                _id: order._id,
-                status: "PENDING",
-                technicianId: null,
-                offers: {
-                    $not: {
-                        $elemMatch: { technicianId: req.user._id },
-                    },
-                },
-            },
-            {
-                $push: {
-                    offers: {
-                        technicianId: req.user._id,
-                        offeredAt: new Date(),
-                        response: "PENDING",
-                    },
-                },
-            }
-        );
-    }
-
+    // Việc chọn ai nhận đơn do bộ ghép cặp (services/dispatcher.js) đảm nhận.
+    // Ở đây chỉ trả về đơn đang được gửi cho CHÍNH kỹ thuật viên này và còn hạn.
     const activeCutoff = new Date(Date.now() - OFFER_DURATION_MS);
 
     const orders = await Order.find({
@@ -721,6 +667,7 @@ export const rejectOrder = async (req, res) => {
             message: "Offer đã hết hạn hoặc không còn khả dụng",
         });
     }
+    await dispatchOrder(order._id).catch((error) => console.error("[Ghép cặp]", error.message));
 
     res.json({
         success: true,
