@@ -1,6 +1,6 @@
 import Order from "../models/order.js";
 import User from "../models/User.js";
-
+import { rankTechnicians, MATCHING_CONFIG } from "../services/matching.js";
 // Các trạng thái "đang xử lý": đã có kỹ thuật viên nhận nhưng chưa hoàn thành
 const ACTIVE_STATUSES = ["ACCEPTED", "ARRIVED", "INSPECTING", "AWAITING_PARTS_APPROVAL", "REPAIRING"];
 
@@ -190,4 +190,22 @@ export const getStats = async (req, res) => {
       topServices: topServicesResult.map((s) => ({ name: s._id || "Không rõ", count: s.count })),
     },
   });
+};
+// GET /api/admin/orders/:id/candidates?all=true
+// Bảng xếp hạng kỹ thuật viên cho một đơn (dùng để kiểm tra thuật toán và minh họa trong báo cáo)
+// - mặc định: chỉ người đang trực, bỏ những người đã được gửi đơn này
+// - all=true: xem tất cả (kể cả đang offline), không loại ai
+export const getOrderCandidates = async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  if (!order) {
+    return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+  }
+
+  const showAll = req.query.all === "true";
+  const result = await rankTechnicians(order, {
+    excludeIds: showAll ? [] : order.offers.map((offer) => offer.technicianId),
+    onlyOnline: !showAll,
+  });
+
+  res.json({ success: true, data: { ...result, weights: MATCHING_CONFIG.weights } });
 };

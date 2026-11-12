@@ -33,7 +33,9 @@ const technicianSchema = new mongoose.Schema(
       type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: { type: [Number], default: [106.700981, 10.776889] }, // mặc định trung tâm TP.HCM
     },
-
+   // Lần cuối kỹ thuật viên mở app hỏi đơn (cập nhật ở Giai đoạn 7B)
+    // Ghép cặp chỉ chọn người hoạt động trong 2 phút gần nhất
+    lastSeenAt: { type: Date, default: null },
     // Điểm đánh giá trung bình và số lượt đánh giá (cập nhật khi khách đánh giá ở Giai đoạn 6)
     ratingAvg: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
