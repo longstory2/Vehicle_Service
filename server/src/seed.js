@@ -127,9 +127,61 @@ const seed = async () => {
     console.log("Đã có đơn hàng, bỏ qua tạo đơn mẫu");
   }
 
-  await mongoose.disconnect(); // đóng kết nối để lệnh kết thúc
-};
 
+    // 6. Ba kỹ thuật viên mẫu để thử ghép cặp (đặt ở phía Bắc trung tâm Quận 1)
+  // Mỗi người kèm vài đơn cũ đã hoàn thành có đánh giá, để có điểm sao trung bình
+  const CENTER = { latitude: 10.776889, longitude: 106.700981 }; // vị trí đơn mẫu
+  const demoTechs = [
+    { fullName: "KTV Demo A", email: "ktv.a@vehicle.vn", phone: "0904000001", distanceKm: 1.2, stars: [4, 4, 5, 4, 4], allSkills: true },
+    { fullName: "KTV Demo B", email: "ktv.b@vehicle.vn", phone: "0904000002", distanceKm: 2.5, stars: [5, 5, 5, 5, 4], allSkills: true },
+    { fullName: "KTV Demo C", email: "ktv.c@vehicle.vn", phone: "0904000003", distanceKm: 0.8, stars: [4, 3, 4, 4, 3], allSkills: false },
+  ];
+  const allServices = await Service.find({ isDefaultInspection: false });
+  const demoCustomer = await User.findOne({ email: "khach@vehicle.vn" });
+
+  for (const demo of demoTechs) {
+    if (await User.findOne({ email: demo.email })) continue; // đã có → bỏ qua
+
+    const user = new User({ fullName: demo.fullName, email: demo.email, phone: demo.phone, role: "technician" });
+    await user.setPassword("Ktv@123");
+    await user.save();
+
+    await Technician.create({
+      userId: user._id,
+      specialty: "both",
+      // A, B làm được mọi dịch vụ; C chỉ làm dịch vụ ô tô (không có kỹ năng xe máy)
+      skills: allServices.filter((s) => demo.allSkills || s.vehicleType === "car").map((s) => s._id),
+      radiusKm: 10,
+      // 1 km ≈ 1/111 độ vĩ → đặt cách trung tâm đúng demo.distanceKm về phía Bắc
+      currentLocation: { type: "Point", coordinates: [CENTER.longitude, CENTER.latitude + demo.distanceKm / 111] },
+      lastSeenAt: new Date(),
+    });
+
+    // Đơn cũ (10 ngày trước) đã hoàn thành, mỗi đơn một lượt đánh giá
+    const DAY = 24 * 60 * 60 * 1000;
+    const past = new Date(Date.now() - 10 * DAY);
+    await Order.insertMany(
+      demo.stars.map((score) => ({
+        customerId: demoCustomer._id,
+        technicianId: user._id,
+        serviceDetails: { serviceName: "Vá lốp", vehicleType: "Xe máy", description: "Đơn mẫu để có đánh giá" },
+        address: "Quận 1, TP.HCM (đơn mẫu đánh giá)",
+        location: CENTER,
+        estimatedPrice: 50000,
+        totalPrice: 50000,
+        status: "COMPLETED",
+        acceptedAt: past,
+        completedAt: past,
+        customerRating: { score, comment: "" },
+        createdAt: past,
+        updatedAt: past,
+      })),
+      { timestamps: false }
+    );
+    console.log(`Đã tạo ${demo.fullName} (${demo.email} / Ktv@123), cách trung tâm ${demo.distanceKm} km`);
+  }
+};
+  await mongoose.disconnect(); // đóng kết nối để lệnh kết thúc
 seed().catch((err) => {
   console.error("Seed lỗi:", err);
   process.exit(1);

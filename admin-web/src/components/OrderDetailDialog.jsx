@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import adminApi from "../api/adminApi";
 import OrderStatusChip from "./OrderStatusChip";
+import CandidateRanking from "./CandidateRanking";
 import {
   formatPrice,
   formatDateTime,
@@ -248,7 +249,11 @@ export default function OrderDetailDialog({ orderId, onClose, onCancelled }) {
                   </TableBody>
                 </Table>
               </>
-            )}
+            )}            
+            {/* Xếp hạng kỹ thuật viên theo thuật toán ghép cặp */}
+            <Divider sx={{ mt: 2 }} />
+            <SectionTitle>Xếp hạng kỹ thuật viên (thuật toán SAW)</SectionTitle>
+            <CandidateRanking orderId={order._id} />
           </>
         )}
       </DialogContent>

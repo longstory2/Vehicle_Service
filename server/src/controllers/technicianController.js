@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Technician from "../models/Technician.js";
 import { normalizePhone } from "../utils/phone.js";
+import { markTechnicianSeen } from "../services/dispatcher.js";
 // =====================================================================
 // Kỹ thuật viên lưu ở 2 nơi:
 //   - users: tài khoản đăng nhập, trạng thái duyệt, khóa, sẵn sàng nhận đơn (isAcceptingOrders)
@@ -216,4 +217,19 @@ export const updateMyAvailability = async (req, res) => {
       : "Đã tắt nhận đơn",
     data: { isAcceptingOrders: req.user.isAcceptingOrders },
   });
+};
+// PUT /api/technicians/location - Kỹ thuật viên gửi vị trí hiện tại (app gọi định kỳ, kể cả khi chạy nền)
+// Body: { "latitude": 10.77, "longitude": 106.70 }
+export const updateMyLocation = async (req, res) => {
+  const { latitude, longitude } = req.body;
+  if (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude))) {
+    return res.status(400).json({ success: false, message: "Tọa độ không hợp lệ" });
+  }
+
+  const found = await markTechnicianSeen(req.user._id, latitude, longitude);
+  if (!found) {
+    // Người tự đăng ký chưa được admin bổ sung chuyên môn, kỹ năng
+    return res.status(400).json({ success: false, message: "Bạn chưa có hồ sơ nghề nghiệp, vui lòng liên hệ quản trị viên" });
+  }
+  res.json({ success: true, message: "Đã cập nhật vị trí" });
 };
