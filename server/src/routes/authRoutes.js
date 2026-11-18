@@ -6,6 +6,7 @@ import {
     getMe,
     updateMe,
     changePassword,
+    updatePushToken,
 } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -17,6 +18,7 @@ router.post("/login", login); //       POST /api/auth/login    (ai cũng gọi �
 router.get("/me", protect, getMe); //  GET  /api/auth/me       (phải có token)
 router.put("/me", protect, updateMe); // PUT /api/auth/me      (sửa họ tên, số điện thoại)
 router.put("/change-password", protect, changePassword); // PUT  /api/auth/change-password (đổi mật khẩu)
+router.put("/push-token", protect, updatePushToken); // PUT /api/auth/push-token (app gửi push token)
 
 // Dòng export luôn để CUỐI file, sau tất cả các route
 export default router;

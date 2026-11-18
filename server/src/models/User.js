@@ -36,6 +36,9 @@ const userSchema = new mongoose.Schema(
     isAcceptingOrders: {
       type: Boolean,
       default: true,
+          // Expo push token của điện thoại đang đăng nhập (dạng ExponentPushToken[...])
+         // App gửi lên sau khi đăng nhập; null = chưa đăng ký hoặc đã đăng xuất → không gửi thông báo
+      expoPushToken: { type: String, default: null },
     },
   },
   { timestamps: true }

@@ -1,7 +1,7 @@
 import Order from "../models/order.js";
 import Technician from "../models/Technician.js";
 import { rankTechnicians } from "./matching.js";
-
+import { sendPushToUser } from "../utils/pushNotification.js";
 // Mỗi kỹ thuật viên có 30 giây để nhận hoặc từ chối
 // (phải khớp OFFER_DURATION_MS trong controllers/orderController.js)
 export const OFFER_DURATION_MS = 30_000;
@@ -88,6 +88,15 @@ export const dispatchOrder = async (orderId) => {
   if (result.modifiedCount === 0) return null;
 
   console.log(`[Ghép cặp] Đơn ${order._id} → ${best.fullName} (score ${best.score})`);
+    // Báo cho kỹ thuật viên bằng thông báo đẩy
+  // Không dùng await: không bắt bộ ghép cặp chờ Expo trả lời; lỗi đã được ghi log trong sendPushToUser
+  const { serviceName, vehicleType } = order.serviceDetails || {};
+  sendPushToUser(best.technicianId, {
+    title: "Đơn mới - trả lời trong 30 giây",
+    body: `${serviceName || "Dịch vụ"}${vehicleType ? ` (${vehicleType})` : ""}, cách ${best.distanceKm.toFixed(1)} km - ${order.address}`,
+    data: { type: "NEW_OFFER", orderId: String(order._id) },
+    ttlSeconds: OFFER_DURATION_MS / 1000, // đơn chỉ còn hạn 30 giây → quá hạn thì không giao nữa
+  });
   return best;
 };
 

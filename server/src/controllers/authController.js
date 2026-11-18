@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
 import { normalizePhone } from "../utils/phone.js";
+import { isExpoPushToken } from "../utils/pushNotification.js";
 
 // Chỉ trả về các trường an toàn của người dùng (không có passwordHash)
 const toPublicUser = (user) => ({
@@ -178,4 +179,25 @@ export const changePassword = async (req, res) => {
   await user.save();
 
   res.json({ success: true, message: "Đã đổi mật khẩu" });
+};
+// PUT /api/auth/push-token - App gửi Expo push token của điện thoại (cần token đăng nhập)
+// Body: { "token": "ExponentPushToken[...]" }  - gửi token null hoặc rỗng = xóa (khi đăng xuất)
+export const updatePushToken = async (req, res) => {
+  const { token } = req.body;
+
+  if (token && !isExpoPushToken(token)) {
+    return res.status(400).json({ success: false, message: "Push token không hợp lệ" });
+  }
+
+  if (token) {
+    // Một điện thoại chỉ nhận thông báo cho một tài khoản:
+    // nếu máy này trước đó đăng nhập tài khoản khác thì gỡ token khỏi tài khoản cũ
+    await User.updateMany(
+      { expoPushToken: token, _id: { $ne: req.user._id } },
+      { $set: { expoPushToken: null } }
+    );
+  }
+
+  await User.updateOne({ _id: req.user._id }, { $set: { expoPushToken: token || null } });
+  res.json({ success: true, message: token ? "Đã lưu push token" : "Đã xóa push token" });
 };
