@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } fr
 import { router, useFocusEffect } from "expo-router";
 import { apiRequest } from "../../../../utils/api";
 import BackButton from "../../../../components/BackButton";
+import CustomerTabBar from "../../../../components/CustomerTabBar";
 type Order = {
     _id: string;
     status: string;
@@ -54,9 +55,12 @@ const CustomerHistory = () => {
 
     if (loading) {
         return (
-            <View className="flex-1 items-center justify-center gap-2">
-                <ActivityIndicator />
-                <Text>Đang tải lịch sử...</Text>
+            <View className="flex-1">
+                <View className="flex-1 items-center justify-center gap-2">
+                    <ActivityIndicator />
+                    <Text>Đang tải lịch sử...</Text>
+                </View>
+                <CustomerTabBar activeTab="history" />
             </View>
         );
     }
@@ -131,6 +135,7 @@ const CustomerHistory = () => {
                     );
                 }}
             />
+            <CustomerTabBar activeTab="history" />
         </View>
     );
 };

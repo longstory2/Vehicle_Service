@@ -32,7 +32,6 @@ type Order = {
     address: string;
     estimatedPrice: number;
     createdAt: string;
-    offerExpiresAt: string;
 };
 
 const HaveBookScreen = () => {
@@ -41,7 +40,6 @@ const HaveBookScreen = () => {
         ? params.orderId[0]
         : params.orderId;
     const [orders, setOrders] = useState<Order[]>([]);
-    const [now, setNow] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [workingId, setWorkingId] = useState<string | null>(null);
@@ -67,7 +65,6 @@ const HaveBookScreen = () => {
                 );
             } finally {
                 loading.current = false;
-                setNow(Date.now());
                 setIsLoading(false);
                 setRefreshing(false);
             }
@@ -83,13 +80,8 @@ const HaveBookScreen = () => {
                 void loadOrders();
             }, 5000);
 
-            const countdownTimer = setInterval(() => {
-                setNow(Date.now());
-            }, 1000);
-
             return () => {
                 clearInterval(pollTimer);
-                clearInterval(countdownTimer);
             };
         }, [loadOrders])
     );
@@ -134,9 +126,7 @@ const HaveBookScreen = () => {
         }
     };
 
-    const visibleOrders = orders.filter(
-        (order) => Date.parse(order.offerExpiresAt) > now
-    );
+    const visibleOrders = orders;
     const prioritizedOrders = requestedOrderId
         ? [...visibleOrders].sort(
             (first, second) =>
@@ -179,10 +169,6 @@ const HaveBookScreen = () => {
                 }
                 renderItem={({ item }) => {
                     const details = item.serviceDetails;
-                    const secondsLeft = Math.max(
-                        0,
-                        Math.ceil((Date.parse(item.offerExpiresAt) - now) / 1000)
-                    );
                     const isWorking = workingId === item._id;
 
                     return (
@@ -207,6 +193,9 @@ const HaveBookScreen = () => {
                             {item.customerId?.phone ? (
                                 <Text>Số điện thoại: {item.customerId.phone}</Text>
                             ) : null}
+                            <Text>
+                                Thời gian đặt: {new Date(item.createdAt).toLocaleString("vi-VN")}
+                            </Text>
                             <Text>Địa chỉ: {item.address}</Text>
 
                             {details.vehicleType || details.vehicleMake ? (
@@ -224,10 +213,6 @@ const HaveBookScreen = () => {
 
                             <Text className="font-bold">
                                 Ước tính: {item.estimatedPrice.toLocaleString("vi-VN")} VND
-                            </Text>
-
-                            <Text className="font-bold text-[#b54708]">
-                                Thời gian xác nhận còn {secondsLeft} giây
                             </Text>
 
                             <View className="mt-1 flex-row gap-2.5">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
     Image,
     Pressable,
@@ -6,12 +6,19 @@ import {
     TextInput,
     View,
 } from "react-native";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useFocusEffect } from "expo-router";
 import { useAuth } from "../../../../context/AuthContext";
 import BackButton from "../../../../components/BackButton";
 import { normalizeVietnamPhoneNumber } from "../../../../utils/auth";
 import { confirmAction, showAlert } from "../../../../utils/notify";
+import ChangePasswordModal from "../../../../components/ChangePasswordModal";
+import { apiRequest } from "../../../../utils/api";
 const avatar = require("../../../../assets/images/avatar.png");
+
+type TechnicianRating = {
+    ratingAvg: number;
+    ratingCount: number;
+};
 
 type AccountFieldProps = {
     label: string;
@@ -49,6 +56,9 @@ const Account = () => {
     const { isLoaded, isSignedIn, user, signOut, updateProfile } = useAuth();
     const [phoneNumber, setPhoneNumber] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const [rating, setRating] = useState<TechnicianRating | null>(null);
+    const [ratingError, setRatingError] = useState("");
+    const [isLoadingRating, setIsLoadingRating] = useState(true);
 
     // Thông tin lấy từ server (GET /api/auth/me), số điện thoại dạng 0901234567
     const savedPhone = user?.phone ?? "";
@@ -58,6 +68,34 @@ const Account = () => {
     useEffect(() => {
         setPhoneNumber(savedPhone);
     }, [savedPhone]);
+
+    useFocusEffect(
+        useCallback(() => {
+            let isCurrent = true;
+
+            const loadRating = async () => {
+                setIsLoadingRating(true);
+                setRatingError("");
+                try {
+                    const data = await apiRequest<TechnicianRating>("/technicians/rating");
+                    if (isCurrent) setRating(data);
+                } catch (error) {
+                    if (isCurrent) {
+                        setRatingError(
+                            error instanceof Error ? error.message : "Không tải được điểm uy tín.",
+                        );
+                    }
+                } finally {
+                    if (isCurrent) setIsLoadingRating(false);
+                }
+            };
+
+            void loadRating();
+            return () => {
+                isCurrent = false;
+            };
+        }, []),
+    );
 
     if (!isLoaded) return null;
     if (!isSignedIn || !user) return <Redirect href="/(auth)/sign-in" />;
@@ -110,7 +148,20 @@ const Account = () => {
                     source={avatar}
                     className="h-24 w-24  rounded-full"
                 />
-                <Text className="mt-3 text-lg text-black">
+                {isLoadingRating ? (
+                    <Text className="mt-1 text-sm text-[#666666]">Đang tải điểm uy tín...</Text>
+                ) : ratingError ? (
+                    <Text accessibilityRole="alert" className="mt-1 text-sm text-[#b42318]">
+                        {ratingError}
+                    </Text>
+                ) : rating?.ratingCount ? (
+                    <Text className="mt-1 text-sm font-semibold text-[#d99a00]">
+                        ★ {rating.ratingAvg.toFixed(1)}
+                    </Text>
+                ) : (
+                    <Text className="mt-1 text-sm text-[#666666]">Điểm uy tín: Chưa có đánh giá</Text>
+                )}
+                <Text className="mt-2 text-lg text-black">
                     {fullName}
                 </Text>
             </View>
@@ -129,6 +180,7 @@ const Account = () => {
                     value={email || "Chưa có email"}
                     accessibilityLabel="Email"
                 />
+                <ChangePasswordModal />
                 {hasPhoneChanges && (
                     <Pressable
                         accessibilityRole="button"

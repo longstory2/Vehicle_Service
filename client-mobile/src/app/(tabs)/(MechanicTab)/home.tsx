@@ -119,6 +119,7 @@ const MechanicHome = () => {
     const [isLoadingServices, setIsLoadingServices] = useState(true);
     const [servicesError, setServicesError] = useState("");
     const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
+    const [locationHeartbeatError, setLocationHeartbeatError] = useState("");
     const lastOpenedAvailableOrderId = useRef<string | null>(null);
     const availableServices = services.filter((service) => {
         if (service.name.trim().toLocaleLowerCase("vi") === "kiểm tra, chẩn đoán tại chỗ") {
@@ -168,6 +169,7 @@ const MechanicHome = () => {
             );
 
             setIsAcceptingOrders(result.isAcceptingOrders);
+            if (!result.isAcceptingOrders) setLocationHeartbeatError("");
         } catch (error) {
             Alert.alert(
                 "Không đổi được trạng thái",
@@ -233,6 +235,82 @@ const MechanicHome = () => {
             isMounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        if (!isAcceptingOrders) return;
+
+        let isMounted = true;
+        let isUpdating = false;
+        let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+
+        const updateLocation = async () => {
+            if (!isMounted || isUpdating) return;
+            isUpdating = true;
+
+            try {
+                const permission = await Location.getForegroundPermissionsAsync();
+                if (!isMounted) return;
+                if (!permission.granted) {
+                    if (isMounted) {
+                        setLocationHeartbeatError("Cần cấp quyền vị trí để nhận đơn phù hợp gần bạn.");
+                    }
+                    return;
+                }
+
+                const position = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced,
+                });
+                if (!isMounted) return;
+                await apiRequest("/technicians/location", {
+                    method: "PUT",
+                    body: {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                    },
+                });
+                if (isMounted) setLocationHeartbeatError("");
+            } catch (error) {
+                if (isMounted) {
+                    setLocationHeartbeatError(
+                        error instanceof Error ? error.message : "Không cập nhật được vị trí trực tuyến.",
+                    );
+                }
+            } finally {
+                isUpdating = false;
+            }
+        };
+
+        const startHeartbeat = async () => {
+            try {
+                let permission = await Location.getForegroundPermissionsAsync();
+                if (!permission.granted) {
+                    permission = await Location.requestForegroundPermissionsAsync();
+                }
+                if (!permission.granted) {
+                    if (isMounted) {
+                        setLocationHeartbeatError("Cần cấp quyền vị trí để nhận đơn phù hợp gần bạn.");
+                    }
+                    return;
+                }
+
+                await updateLocation();
+                if (!isMounted) return;
+                heartbeatTimer = setInterval(() => void updateLocation(), 45_000);
+            } catch (error) {
+                if (isMounted) {
+                    setLocationHeartbeatError(
+                        error instanceof Error ? error.message : "Không cập nhật được vị trí trực tuyến.",
+                    );
+                }
+            }
+        };
+
+        void startHeartbeat();
+        return () => {
+            isMounted = false;
+            if (heartbeatTimer) clearInterval(heartbeatTimer);
+        };
+    }, [isAcceptingOrders]);
 
     useFocusEffect(
         useCallback(() => {
@@ -856,6 +934,11 @@ const MechanicHome = () => {
                 {orderError ? (
                     <Text accessibilityRole="alert" className="mb-3 text-sm text-[#b42318]">
                         {orderError}
+                    </Text>
+                ) : null}
+                {locationHeartbeatError ? (
+                    <Text accessibilityRole="alert" className="mb-3 text-sm text-[#b42318]">
+                        {locationHeartbeatError}
                     </Text>
                 ) : null}
 

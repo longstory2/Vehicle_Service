@@ -5,6 +5,7 @@ import { car, motorbike, serviceCategories, spareParts, vehicleMakes, vehicleTyp
 import { images } from "../../../../constants/index";
 import { router } from "expo-router";
 import { FormInput } from "../../../../components/InputField";
+import CustomerTabBar from "../../../../components/CustomerTabBar";
 import { apiRequest } from "../../../../utils/api";
 type ServiceCategory = (typeof serviceCategories)[number];
 type FormValues = Record<string, string>;
@@ -234,7 +235,8 @@ const service = () => {
     );
 
     return (
-        <ScrollView className="flex-1 bg-[#eeeeee]" showsVerticalScrollIndicator={false}>
+        <View className="flex-1">
+            <ScrollView className="flex-1 bg-[#eeeeee]" showsVerticalScrollIndicator={false}>
             <View className="flex-1 bg-white">
                 <View className="relative w-full h-[250px]">
                     <Image source={images.signUpCar} className="z-0 h-[250px] w-full" />
@@ -439,7 +441,9 @@ const service = () => {
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
-        </ScrollView>
+            </ScrollView>
+            <CustomerTabBar activeTab="service" />
+        </View>
     );
 };
 

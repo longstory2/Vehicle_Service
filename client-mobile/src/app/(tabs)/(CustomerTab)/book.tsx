@@ -1,4 +1,4 @@
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View, Image, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Linking, Modal, Pressable, ScrollView, Text, TextInput, View, Image, useWindowDimensions } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { serviceCategories, serviceEstimatedPrices, spareParts, vehicleMakes, vehicleTypes, } from "../../../../constants/data";
 import LeafletMap from "../../../../components/LeafletMap";
@@ -51,6 +51,12 @@ const BookScreen = () => {
     const {
         activeOrder,
         isSubmitting,
+        technicianCandidates,
+        selectedTechnicianId,
+        setSelectedTechnicianId,
+        isCandidateModalVisible,
+        closeCandidateModal,
+        selectTechnician,
         isSheetExpanded,
         setIsSheetExpanded,
         trackingError,
@@ -105,8 +111,19 @@ const BookScreen = () => {
     ];
 
     if (activeOrder) {
+        const pendingOffer = activeOrder.offers?.find((offer) => offer.response === "PENDING");
+        const selectedOffer = pendingOffer ?? activeOrder.offers?.at(-1);
+        const needsTechnicianReselection = selectedOffer?.response === "REJECTED";
+        const offeredTechnician =
+            selectedOffer && typeof selectedOffer.technicianId === "object"
+                ? selectedOffer.technicianId
+                : null;
         const orderStatusText = {
-            PENDING: "Đang tìm kỹ thuật viên",
+            PENDING: selectedOffer?.response === "REJECTED"
+                ? "Kỹ thuật viên đã từ chối đơn"
+                : offeredTechnician?.fullName
+                    ? `Đang chờ ${offeredTechnician.fullName} xác nhận`
+                    : "Đang chờ kỹ thuật viên xác nhận",
             ACCEPTED: "Kỹ thuật viên đã xác nhận đơn",
             ARRIVED: "Kỹ thuật viên đã đến vị trí của bạn",
             INSPECTING: "Đang kiểm tra",
@@ -189,9 +206,18 @@ const BookScreen = () => {
                                         {activeOrder.technicianId.fullName}
                                     </Text>
                                 </View>
+                            ) : offeredTechnician ? (
+                                <View className="mt-3 flex-row items-center">
+                                    <Image source={technicianAvatar} className="h-12 w-12 rounded-full" />
+                                    <Text className="ml-3 text-[15px] text-[#555555]">
+                                        {selectedOffer?.response === "REJECTED"
+                                            ? `${offeredTechnician.fullName} đã từ chối đơn`
+                                            : `Đang chờ ${offeredTechnician.fullName} xác nhận`}
+                                    </Text>
+                                </View>
                             ) : (
                                 <Text className="mt-1.5 text-[13px] text-[#777777]">
-                                    Đơn sẽ được cập nhật khi có kỹ thuật viên nhận.
+                                    Đơn đang chờ kỹ thuật viên xác nhận.
                                 </Text>
                             )}
                         </View>
@@ -383,6 +409,20 @@ const BookScreen = () => {
                         </Text>
                     ) : null}
                 </DraggableOrderSheet>
+                <TechnicianSelectionModal
+                    visible={isCandidateModalVisible}
+                    candidates={technicianCandidates}
+                    selectedTechnicianId={selectedTechnicianId}
+                    isSubmitting={isSubmitting}
+                    isReselection={needsTechnicianReselection}
+                    onClose={closeCandidateModal}
+                    onSelect={setSelectedTechnicianId}
+                    onConfirm={() => {
+                        if (selectedTechnicianId) {
+                            void selectTechnician(selectedTechnicianId);
+                        }
+                    }}
+                />
             </View>
         );
     }
@@ -488,21 +528,155 @@ const BookScreen = () => {
                         <Pressable
                             accessibilityRole="button"
                             disabled={isSubmitting}
-                            onPress={() => void submitBooking()}
+                            onPress={() => {
+                                setSelectedTechnicianId(null);
+                                void submitBooking();
+                            }}
                             className="min-w-[145px] min-h-[58px] items-center justify-center rounded-[13px] bg-[#a9dfff] px-[18px]"
                         >
                             {isSubmitting ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text className="text-[17px] font-bold text-[#111111]">Đặt đơn</Text>
+                                <Text className="text-[17px] font-bold text-[#111111]">Tìm kỹ thuật viên</Text>
                             )}
                         </Pressable>
                     </View>
                 </View>
             </View>
+            <TechnicianSelectionModal
+                visible={isCandidateModalVisible}
+                candidates={technicianCandidates}
+                selectedTechnicianId={selectedTechnicianId}
+                isSubmitting={isSubmitting}
+                isReselection={false}
+                onClose={closeCandidateModal}
+                onSelect={setSelectedTechnicianId}
+                onConfirm={() => {
+                    if (selectedTechnicianId) {
+                        void selectTechnician(selectedTechnicianId);
+                    }
+                }}
+            />
         </View>
     );
 };
+
+type TechnicianSelectionModalProps = {
+    visible: boolean;
+    candidates: ReturnType<typeof useBooking>["technicianCandidates"];
+    selectedTechnicianId: string | null;
+    isSubmitting: boolean;
+    isReselection: boolean;
+    onClose: () => void;
+    onSelect: (technicianId: string) => void;
+    onConfirm: () => void;
+};
+
+const TechnicianSelectionModal = ({
+    visible,
+    candidates,
+    selectedTechnicianId,
+    isSubmitting,
+    isReselection,
+    onClose,
+    onSelect,
+    onConfirm,
+}: TechnicianSelectionModalProps) => (
+    <Modal
+        visible={visible}
+        transparent
+        animationType="slide"
+        onRequestClose={onClose}
+    >
+        <View className="flex-1 justify-end bg-black/40">
+            <View className="max-h-[85%] rounded-t-[28px] bg-white px-5 pb-8 pt-5">
+                <View className="mb-4 flex-row items-center justify-between">
+                    <View className="flex-1 pr-3">
+                        <Text className="text-xl font-bold text-[#111111]">
+                            {isReselection ? "Chọn kỹ thuật viên khác" : "Chọn kỹ thuật viên"}
+                        </Text>
+                        <Text className="mt-1 text-sm text-[#666666]">
+                            {isReselection
+                                ? `${candidates.length} kỹ thuật viên còn lại trong danh sách`
+                                : "5 kỹ thuật viên phù hợp nhất theo điểm"}
+                        </Text>
+                    </View>
+                    {!isReselection ? (
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Đóng danh sách kỹ thuật viên"
+                            onPress={onClose}
+                            disabled={isSubmitting}
+                            className="h-10 w-10 items-center justify-center rounded-full bg-neutral-100"
+                        >
+                            <Text className="text-2xl text-[#333333]">×</Text>
+                        </Pressable>
+                    ) : null}
+                </View>
+
+                <ScrollView
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    className="shrink"
+                >
+                    {candidates.map((candidate, index) => (
+                        <Pressable
+                            key={candidate.technicianId}
+                            accessibilityRole="radio"
+                            accessibilityState={{
+                                checked: selectedTechnicianId === candidate.technicianId,
+                            }}
+                            onPress={() => onSelect(candidate.technicianId)}
+                            className={`mb-3 rounded-2xl border p-4 ${selectedTechnicianId === candidate.technicianId
+                                    ? "border-[#16835d] bg-[#eaf7f0]"
+                                    : "border-[#e3e8ed] bg-[#f9fbfc]"
+                                }`}
+                        >
+                            <View className="flex-row items-start justify-between">
+                                <View className="flex-1 pr-3">
+                                    <Text className="text-base font-bold text-[#111111]">
+                                        {index + 1}. {candidate.fullName}
+                                    </Text>
+                                    <Text className="mt-1 text-sm text-[#555555]">
+                                        {candidate.ratingAvg !== null
+                                            ? `★ ${candidate.ratingAvg.toFixed(1)} (${candidate.ratingCount} đánh giá)`
+                                            : "Chưa có đánh giá"}
+                                        {" · "}{candidate.distanceKm.toFixed(1)} km
+                                    </Text>
+                                </View>
+                                {/* <Text className="font-bold text-[#16835d]">
+                                    SAW {candidate.score.toFixed(3)}
+                                </Text> */}
+                            </View>
+                            {selectedTechnicianId === candidate.technicianId ? (
+                                <Text className="mt-2 text-sm font-semibold text-[#16835d]">
+                                    ✓ Đã chọn
+                                </Text>
+                            ) : null}
+                        </Pressable>
+                    ))}
+                </ScrollView>
+                <Pressable
+                    accessibilityRole="button"
+                    disabled={isSubmitting || !selectedTechnicianId}
+                    onPress={onConfirm}
+                    className={`mt-2 min-h-12 items-center justify-center rounded-xl bg-[#a9dfff] ${isSubmitting || !selectedTechnicianId ? "opacity-50" : ""
+                        }`}
+                >
+                    {isSubmitting ? (
+                        <ActivityIndicator color="#16835d" />
+                    ) : (
+                        <Text className="font-bold text-[#111111]">
+                            {selectedTechnicianId
+                                ? "Xác nhận kỹ thuật viên"
+                                : "Chọn kỹ thuật viên để tiếp tục"}
+                        </Text>
+                    )}
+                </Pressable>
+            </View>
+        </View>
+    </Modal>
+);
 
 type InfoRow = { label: string; value: string };
 

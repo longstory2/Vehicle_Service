@@ -6,6 +6,8 @@ import BackButton from "../../../../components/BackButton";
 import { normalizeVietnamPhoneNumber } from "../../../../utils/auth";
 import { confirmAction, showAlert } from "../../../../utils/notify";
 import { AccountField } from "../../../../components/InputField"
+import CustomerTabBar from "../../../../components/CustomerTabBar";
+import ChangePasswordModal from "../../../../components/ChangePasswordModal";
 const avatar = require("../../../../assets/images/avatar.png");
 
 const Account = () => {
@@ -62,57 +64,59 @@ const Account = () => {
     };
 
     return (
-        <View className="flex-1 bg-white px-6 pb-4 pt-5">
-            <View className="h-12 flex-row items-center justify-center mt-10">
-                <BackButton style={{ position: "absolute", left: 0 }} />
-                <Text className="text-[30px] text-black font-bold">Tài khoản</Text>
-            </View>
+        <View className="flex-1 bg-white">
+            <View className="flex-1 px-6 pb-4 pt-5">
+                <View className="h-12 flex-row items-center justify-center mt-10">
+                    <Text className="text-[30px] text-black font-bold">Tài khoản</Text>
+                </View>
 
-            <View className="mt-5 items-center">
-                <Image
-                    source={avatar}
-                    className="h-24 w-24  rounded-full"
-                />
-                <Text className="mt-3 text-lg text-black">
-                    {fullName}
-                </Text>
-            </View>
+                <View className="mt-5 items-center">
+                    <Image
+                        source={avatar}
+                        className="h-24 w-24  rounded-full"
+                    />
+                    <Text className="mt-3 text-lg text-black">
+                        {fullName}
+                    </Text>
+                </View>
 
-            <View className="mt-6">
-                <AccountField
-                    label="Số điện thoại"
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                    editable
-                    keyboardType="phone-pad"
-                    accessibilityLabel="Số điện thoại"
-                />
-                <AccountField
-                    label="Email"
-                    value={email || "Chưa có email"}
-                    accessibilityLabel="Email"
-                />
-                {hasPhoneChanges && (
-                    <Pressable
-                        accessibilityRole="button"
-                        className={`mt-2 items-center rounded-lg bg-neutral-100 py-3 ${isSaving ? "opacity-50" : ""}`}
-                        disabled={isSaving}
-                        onPress={handleSavePhone}
-                    >
-                        <Text className="text-black">
-                            {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
-                        </Text>
-                    </Pressable>
-                )}
-            </View>
+                <View className="mt-6">
+                    <AccountField
+                        label="Số điện thoại"
+                        value={phoneNumber}
+                        onChangeText={setPhoneNumber}
+                        editable
+                        keyboardType="phone-pad"
+                        accessibilityLabel="Số điện thoại"
+                    />
+                    <AccountField
+                        label="Email"
+                        value={email || "Chưa có email"}
+                        accessibilityLabel="Email"
+                    />
+                    <ChangePasswordModal />
+                    {hasPhoneChanges && (
+                        <Pressable
+                            accessibilityRole="button"
+                            className={`mt-2 items-center rounded-lg bg-neutral-100 py-3 ${isSaving ? "opacity-50" : ""}`}
+                            disabled={isSaving}
+                            onPress={handleSavePhone}
+                        >
+                            <Text className="text-black">
+                                {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+                            </Text>
+                        </Pressable>
+                    )}
+                </View>
 
-            <Pressable
-                accessibilityRole="button"
-                className="mt-auto items-center rounded-lg bg-neutral-100 py-3"
-                onPress={handleSignOut}
-            >
-                <Text className="text-black">Đăng xuất</Text>
-            </Pressable>
+                <Pressable
+                    accessibilityRole="button"
+                    className="mt-auto items-center rounded-lg bg-neutral-100 py-3"
+                    onPress={handleSignOut}>
+                    <Text className="text-black">Đăng xuất</Text>
+                </Pressable>
+            </View>
+            <CustomerTabBar activeTab="account" />
         </View>
     );
 };

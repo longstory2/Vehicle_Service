@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { popularServices, serviceCategories } from "../../../../constants/data"
 import { banner } from "../../../../constants";
 import { icons } from "../../../../constants/icon";
+import CustomerTabBar from "../../../../components/CustomerTabBar";
 
 const avatar = require("../../../../assets/images/avatar.png");
 const screenWidth = Dimensions.get("window").width;
@@ -196,6 +197,7 @@ const HomeScreen = () => {
 
                 <View className="h-5" />
             </ScrollView>
+            <CustomerTabBar activeTab="home" />
         </SafeAreaView>
     );
 };
