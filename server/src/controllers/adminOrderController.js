@@ -1,6 +1,10 @@
 import Order from "../models/order.js";
 import User from "../models/User.js";
-import { rankTechnicians, MATCHING_CONFIG } from "../services/matching.js";
+import {
+  getTechniciansHoldingOffer,
+  rankTechnicians,
+  MATCHING_CONFIG,
+} from "../services/matching.js";
 // Các trạng thái "đang xử lý": đã có kỹ thuật viên nhận nhưng chưa hoàn thành
 const ACTIVE_STATUSES = ["ACCEPTED", "ARRIVED", "INSPECTING", "AWAITING_PARTS_APPROVAL", "REPAIRING"];
 
@@ -203,7 +207,12 @@ export const getOrderCandidates = async (req, res) => {
 
   const showAll = req.query.all === "true";
   const result = await rankTechnicians(order, {
-    excludeIds: showAll ? [] : order.offers.map((offer) => offer.technicianId),
+    excludeIds: showAll
+      ? []
+      : [
+          ...order.offers.map((offer) => offer.technicianId),
+          ...(await getTechniciansHoldingOffer()),
+        ],
     onlyOnline: !showAll,
   });
 

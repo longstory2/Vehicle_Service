@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
     acceptOrder,
     createOrder,
+    getOrderTechnicianCandidates,
+    selectNextOrderTechnician,
     getAvailableOrders,
     getOrderById,
     getMyOrders,
@@ -23,6 +25,8 @@ import { authorize, protect } from "../middleware/authMiddleware.js";
 const router = Router();
 
 router.post("/", protect, authorize("customer"), createOrder);
+router.post("/candidates", protect, authorize("customer"), getOrderTechnicianCandidates);
+router.put("/:id/select-technician", protect, authorize("customer"), selectNextOrderTechnician);
 router.get("/available", protect, authorize("technician"), getAvailableOrders);
 router.get("/mine", protect, authorize("technician"), getMyOrders);
 router.get("/customer/mine", protect, authorize("customer"), getCustomerOrders);

@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import Technician from "../models/Technician.js";
+import Order from "../models/order.js";
 import { normalizePhone } from "../utils/phone.js";
 import { markTechnicianSeen } from "../services/dispatcher.js";
 // =====================================================================
@@ -192,6 +193,33 @@ export const getMyAvailability = async (req, res) => {
     data: {
       // Tài khoản cũ chưa có trường này được xem là đang sẵn sàng.
       isAcceptingOrders: req.user.isAcceptingOrders !== false,
+    },
+  });
+};
+
+// GET /api/technicians/rating - Kỹ thuật viên xem điểm đánh giá của mình
+export const getMyRating = async (req, res) => {
+  const [rating] = await Order.aggregate([
+    {
+      $match: {
+        technicianId: req.user._id,
+        "customerRating.score": { $ne: null },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        average: { $avg: "$customerRating.score" },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  res.json({
+    success: true,
+    data: {
+      ratingAvg: rating ? Number(rating.average.toFixed(1)) : 0,
+      ratingCount: rating?.count ?? 0,
     },
   });
 };

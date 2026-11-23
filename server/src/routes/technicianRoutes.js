@@ -6,6 +6,7 @@ import {
     getPendingTechnicians,
     approveTechnician,
     getMyAvailability,
+    getMyRating,
     updateMyAvailability,
     updateMyLocation,
 } from "../controllers/technicianController.js";
@@ -17,6 +18,7 @@ const router = Router();
 // nếu không Express sẽ hiểu "availability" là một :id
 // ----- Kỹ thuật viên tự dùng trên app mobile -----
 router.get("/availability", protect, authorize("technician"), getMyAvailability);
+router.get("/rating", protect, authorize("technician"), getMyRating);
 router.put("/availability", protect, authorize("technician"), updateMyAvailability);
 router.put("/location", protect, authorize("technician"), updateMyLocation); // PUT /api/technicians/location
 // ----- Admin Web -----

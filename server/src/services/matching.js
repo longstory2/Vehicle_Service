@@ -50,8 +50,20 @@ const findNearby = (order, radiusKm) =>
     { $unwind: "$user" },
   ]);
 
+// Kỹ thuật viên đang có offer chưa phản hồi không được giữ thêm đơn khác.
+export const getTechniciansHoldingOffer = async () => {
+  const orders = await Order.find({
+    status: "PENDING",
+    offers: { $elemMatch: { response: "PENDING" } },
+  }).select("offers");
+
+  return orders.flatMap((order) =>
+    order.offers.filter((offer) => offer.response === "PENDING").map((offer) => offer.technicianId)
+  );
+};
+
 // Xếp hạng kỹ thuật viên cho một đơn
-// options.excludeIds: những người đã được gửi đơn này (đã từ chối / hết giờ) → bỏ qua
+// options.excludeIds: những người đã được gửi offer ở đơn này hoặc đang giữ offer khác
 // options.onlyOnline: false = xem cả người đang offline (dùng cho admin xem thử)
 export const rankTechnicians = async (order, { excludeIds = [], onlyOnline = true } = {}) => {
   const cfg = MATCHING_CONFIG;

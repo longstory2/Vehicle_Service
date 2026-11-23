@@ -1,16 +1,9 @@
 import Order from "../models/order.js";
 import Technician from "../models/Technician.js";
-import { rankTechnicians } from "./matching.js";
-
-// Mỗi kỹ thuật viên có 30 giây để nhận hoặc từ chối
-// (phải khớp OFFER_DURATION_MS trong controllers/orderController.js)
-export const OFFER_DURATION_MS = 30_000;
+import { getTechniciansHoldingOffer, rankTechnicians } from "./matching.js";
 
 // Chu kỳ quét của bộ ghép cặp
 const SWEEP_INTERVAL_MS = 10_000;
-
-// Offer được gửi sau mốc này thì còn hạn
-const activeCutoff = () => new Date(Date.now() - OFFER_DURATION_MS);
 
 // Đọc tọa độ từ chuỗi; không hợp lệ → null
 const parseCoordinate = (value, limit) => {
@@ -32,43 +25,22 @@ export const markTechnicianSeen = async (userId, lat, lng) => {
   return result.matchedCount > 0;
 };
 
-// Offer quá 30 giây chưa trả lời → EXPIRED (áp dụng cho mọi kỹ thuật viên)
-export const expireStaleOffers = () => {
-  const cutoff = activeCutoff();
-  return Order.updateMany(
-    { status: "PENDING", offers: { $elemMatch: { response: "PENDING", offeredAt: { $lte: cutoff } } } },
-    { $set: { "offers.$[offer].response": "EXPIRED" } },
-    { arrayFilters: [{ "offer.response": "PENDING", "offer.offeredAt": { $lte: cutoff } }] }
-  );
-};
-
-// Kỹ thuật viên đang giữ một offer còn hạn (ở bất kỳ đơn nào) → không gửi thêm đơn thứ hai cùng lúc
-const techniciansHoldingOffer = async (cutoff) => {
-  const orders = await Order.find({
-    status: "PENDING",
-    offers: { $elemMatch: { response: "PENDING", offeredAt: { $gt: cutoff } } },
-  }).select("offers");
-  return orders.flatMap((order) =>
-    order.offers
-      .filter((offer) => offer.response === "PENDING" && offer.offeredAt > cutoff)
-      .map((offer) => offer.technicianId)
-  );
-};
-
 // Gửi đơn cho kỹ thuật viên có điểm SAW cao nhất, nếu đơn đang không có ai giữ
 // Trả về ứng viên được chọn, hoặc null nếu chưa gửi được
 export const dispatchOrder = async (orderId) => {
-  const cutoff = activeCutoff();
   const order = await Order.findById(orderId);
-  if (!order || order.status !== "PENDING" || order.technicianId) return null;
+  if (!order || order.status !== "PENDING" || order.technicianId || order.customerSelectedTechnician) return null;
 
-  // Đang có người giữ offer còn hạn → chờ người đó trả lời
-  const hasActiveOffer = order.offers.some((offer) => offer.response === "PENDING" && offer.offeredAt > cutoff);
+  // Đang có người giữ offer chưa phản hồi → chờ người đó trả lời
+  const hasActiveOffer = order.offers.some((offer) => offer.response === "PENDING");
   if (hasActiveOffer) return null;
 
-  // Bỏ qua: người đã được gửi đơn này (đã từ chối / hết giờ) và người đang giữ đơn khác
+  // Bỏ qua: người đã từ chối đơn này và người đang giữ đơn khác
   const { candidates } = await rankTechnicians(order, {
-    excludeIds: [...order.offers.map((offer) => offer.technicianId), ...(await techniciansHoldingOffer(cutoff))],
+    excludeIds: [
+      ...order.offers.map((offer) => offer.technicianId),
+      ...(await getTechniciansHoldingOffer()),
+    ],
   });
   if (candidates.length === 0) return null; // chưa có ai phù hợp → lần quét sau thử lại
 
@@ -80,7 +52,7 @@ export const dispatchOrder = async (orderId) => {
       _id: order._id,
       status: "PENDING",
       technicianId: null,
-      offers: { $not: { $elemMatch: { response: "PENDING", offeredAt: { $gt: cutoff } } } },
+      offers: { $not: { $elemMatch: { response: "PENDING" } } },
       "offers.technicianId": { $ne: best.technicianId }, // chưa từng gửi cho người này
     },
     { $push: { offers: { technicianId: best.technicianId, offeredAt: new Date(), response: "PENDING" } } }
@@ -91,13 +63,12 @@ export const dispatchOrder = async (orderId) => {
   return best;
 };
 
-// Một lần quét: xử lý offer hết hạn, rồi thử ghép cho mọi đơn đang chờ (đơn cũ trước)
+// Một lần quét: thử ghép cho mọi đơn đang chờ (đơn cũ trước)
 let sweeping = false;
 const sweep = async () => {
   if (sweeping) return; // lần quét trước chưa xong → bỏ lượt này
   sweeping = true;
   try {
-    await expireStaleOffers();
     const pendingOrders = await Order.find({ status: "PENDING", technicianId: null })
       .sort({ createdAt: 1 })
       .select("_id");

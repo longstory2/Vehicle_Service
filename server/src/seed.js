@@ -128,7 +128,7 @@ const seed = async () => {
   }
 
 
-    // 6. Ba kỹ thuật viên mẫu để thử ghép cặp (đặt ở phía Bắc trung tâm Quận 1)
+  // 6. Ba kỹ thuật viên mẫu để thử ghép cặp (đặt ở phía Bắc trung tâm Quận 1)
   // Mỗi người kèm vài đơn cũ đã hoàn thành có đánh giá, để có điểm sao trung bình
   const CENTER = { latitude: 10.776889, longitude: 106.700981 }; // vị trí đơn mẫu
   const demoTechs = [
@@ -181,7 +181,7 @@ const seed = async () => {
     console.log(`Đã tạo ${demo.fullName} (${demo.email} / Ktv@123), cách trung tâm ${demo.distanceKm} km`);
   }
 };
-  await mongoose.disconnect(); // đóng kết nối để lệnh kết thúc
+await mongoose.disconnect(); // đóng kết nối để lệnh kết thúc
 seed().catch((err) => {
   console.error("Seed lỗi:", err);
   process.exit(1);

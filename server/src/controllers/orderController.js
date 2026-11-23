@@ -1,27 +1,18 @@
 import mongoose from "mongoose";
 import Order from "../models/order.js";
-import { dispatchOrder, markTechnicianSeen } from "../services/dispatcher.js";
-
+import { getTechniciansHoldingOffer, rankTechnicians } from "../services/matching.js";
 
 const readText = (value) =>
     typeof value === "string" ? value.trim() : "";
 
-export const createOrder = async (req, res) => {
-    const { serviceDetails, address, location, estimatedPrice, paymentMethod } =
-        req.body;
-
+const parseOrderRequest = (body) => {
+    const { serviceDetails, address, location, estimatedPrice, paymentMethod } = body;
     const cleanAddress = readText(address);
     const latitude = Number(location?.latitude);
     const longitude = Number(location?.longitude);
     const price = Number(estimatedPrice ?? 0);
 
-    if (!cleanAddress) {
-        return res.status(400).json({
-            success: false,
-            message: "Vui lòng cung cấp địa chỉ điểm đón",
-        });
-    }
-
+    if (!cleanAddress) return { error: "Vui lòng cung cấp địa chỉ điểm đón" };
     if (
         !Number.isFinite(latitude) ||
         latitude < -90 ||
@@ -30,73 +21,208 @@ export const createOrder = async (req, res) => {
         longitude < -180 ||
         longitude > 180
     ) {
-        return res.status(400).json({
-            success: false,
-            message: "Tọa độ điểm đón không hợp lệ",
-        });
+        return { error: "Tọa độ điểm đón không hợp lệ" };
     }
-
     if (!Number.isFinite(price) || price < 0) {
-        return res.status(400).json({
-            success: false,
-            message: "Giá ước tính không hợp lệ",
-        });
+        return { error: "Giá ước tính không hợp lệ" };
     }
-
     if (paymentMethod !== undefined && !["cash", "momo", "vnpay"].includes(paymentMethod)) {
+        return { error: "Phương thức thanh toán không hợp lệ" };
+    }
+
+    const details = serviceDetails && typeof serviceDetails === "object" ? serviceDetails : {};
+    return {
+        data: {
+            serviceDetails: {
+                category: readText(details.category),
+                serviceName: readText(details.serviceName),
+                sparePart: readText(details.sparePart),
+                vehicleType: readText(details.vehicleType),
+                vehicleMake: readText(details.vehicleMake),
+                plate: readText(details.plate),
+                mileage: readText(details.mileage),
+                description: readText(details.description),
+            },
+            address: cleanAddress,
+            location: { latitude, longitude },
+            estimatedPrice: price,
+            paymentMethod: paymentMethod ?? "cash",
+        },
+    };
+};
+
+const getRankedCandidates = async (order) => {
+    const excludeIds = await getTechniciansHoldingOffer();
+    const { candidates } = await rankTechnicians(order, { excludeIds });
+    return candidates.slice(0, 5);
+};
+
+const toPublicCandidate = (candidate) => ({
+    technicianId: String(candidate.technicianId),
+    fullName: candidate.fullName,
+    distanceKm: candidate.distanceKm,
+    ratingAvg: candidate.ratingAvg,
+    ratingCount: candidate.ratingCount,
+    score: candidate.score,
+});
+
+export const getOrderTechnicianCandidates = async (req, res) => {
+    const parsed = parseOrderRequest(req.body);
+    if (parsed.error) {
+        return res.status(400).json({ success: false, message: parsed.error });
+    }
+
+    const candidates = await getRankedCandidates(parsed.data);
+    res.json({
+        success: true,
+        data: candidates.map(toPublicCandidate),
+    });
+};
+
+export const createOrder = async (req, res) => {
+    const parsed = parseOrderRequest(req.body);
+    if (parsed.error) {
+        return res.status(400).json({ success: false, message: parsed.error });
+    }
+
+    const selectedTechnicianId = req.body.technicianId;
+    if (!mongoose.isValidObjectId(selectedTechnicianId)) {
         return res.status(400).json({
             success: false,
-            message: "Phương thức thanh toán không hợp lệ",
+            message: "Vui lòng chọn một kỹ thuật viên trong danh sách",
         });
     }
 
-    const details = serviceDetails && typeof serviceDetails === "object"
-        ? serviceDetails
-        : {};
+    const candidates = await getRankedCandidates(parsed.data);
+    const selectedTechnician = candidates.find(
+        (candidate) => String(candidate.technicianId) === String(selectedTechnicianId),
+    );
+    if (!selectedTechnician) {
+        return res.status(409).json({
+            success: false,
+            message: "Kỹ thuật viên đã không còn phù hợp. Vui lòng tải lại danh sách.",
+        });
+    }
 
     const order = await Order.create({
-        // Lấy khách hàng từ token đăng nhập, không tin customerId do app gửi lên.
+        ...parsed.data,
         customerId: req.user._id,
-        serviceDetails: {
-            category: readText(details.category),
-            serviceName: readText(details.serviceName),
-            sparePart: readText(details.sparePart),
-            vehicleType: readText(details.vehicleType),
-            vehicleMake: readText(details.vehicleMake),
-            plate: readText(details.plate),
-            mileage: readText(details.mileage),
-            description: readText(details.description),
-        },
-        address: cleanAddress,
-        location: { latitude, longitude },
-        estimatedPrice: price,
-        totalPrice: price,
-        paymentMethod: paymentMethod ?? "cash",
+        totalPrice: parsed.data.estimatedPrice,
         status: "PENDING",
+        customerSelectedTechnician: true,
+        candidateTechnicians: candidates.map(toPublicCandidate),
+        offers: [{
+            technicianId: selectedTechnician.technicianId,
+            offeredAt: new Date(),
+            response: "PENDING",
+        }],
     });
-    await dispatchOrder(order._id).catch((error) => console.error("[Ghép cặp]", error.message));
+    await order.populate("offers.technicianId", "fullName");
 
     res.status(201).json({
         success: true,
-        message: "Đã gửi đơn, đang chờ kỹ thuật viên xác nhận",
+        message: "Đã gửi đơn cho kỹ thuật viên, đang chờ xác nhận",
         data: order,
     });
 };
 
-const OFFER_DURATION_MS = 30_000;
+export const selectNextOrderTechnician = async (req, res) => {
+    const { id } = req.params;
+    const selectedTechnicianId = req.body?.technicianId;
+
+    if (!mongoose.isValidObjectId(id) || !mongoose.isValidObjectId(selectedTechnicianId)) {
+        return res.status(400).json({
+            success: false,
+            message: "Mã đơn hoặc kỹ thuật viên không hợp lệ",
+        });
+    }
+
+    const order = await Order.findOne({
+        _id: id,
+        customerId: req.user._id,
+        status: "PENDING",
+        customerSelectedTechnician: true,
+    });
+    if (!order) {
+        return res.status(404).json({
+            success: false,
+            message: "Không tìm thấy đơn đang chờ kỹ thuật viên",
+        });
+    }
+
+    const lastOffer = order.offers.at(-1);
+    if (!lastOffer || lastOffer.response !== "REJECTED") {
+        return res.status(409).json({
+            success: false,
+            message: "Chỉ có thể chọn kỹ thuật viên khác sau khi người trước từ chối",
+        });
+    }
+
+    const selectedCandidate = order.candidateTechnicians.find(
+        (candidate) => String(candidate.technicianId) === String(selectedTechnicianId),
+    );
+    if (!selectedCandidate || order.offers.some(
+        (offer) => String(offer.technicianId) === String(selectedTechnicianId),
+    )) {
+        return res.status(400).json({
+            success: false,
+            message: "Kỹ thuật viên này không còn trong danh sách lựa chọn",
+        });
+    }
+
+    const excludeIds = [
+        ...order.offers.map((offer) => offer.technicianId),
+        ...(await getTechniciansHoldingOffer()),
+    ];
+    const { candidates } = await rankTechnicians(order, { excludeIds });
+    if (!candidates.some(
+        (candidate) => String(candidate.technicianId) === String(selectedTechnicianId),
+    )) {
+        return res.status(409).json({
+            success: false,
+            message: "Kỹ thuật viên này hiện không còn khả dụng. Vui lòng chọn người khác.",
+        });
+    }
+
+    const updatedOrder = await Order.findOneAndUpdate(
+        {
+            _id: id,
+            customerId: req.user._id,
+            status: "PENDING",
+            customerSelectedTechnician: true,
+            offers: { $not: { $elemMatch: { response: "PENDING" } } },
+            "offers.technicianId": { $ne: selectedTechnicianId },
+        },
+        {
+            $push: {
+                offers: {
+                    technicianId: selectedTechnicianId,
+                    offeredAt: new Date(),
+                    response: "PENDING",
+                },
+            },
+        },
+        { returnDocument: "after" },
+    ).populate("offers.technicianId", "fullName");
+
+    if (!updatedOrder) {
+        return res.status(409).json({
+            success: false,
+            message: "Đơn vừa được cập nhật. Vui lòng tải lại trạng thái đơn.",
+        });
+    }
+
+    res.json({
+        success: true,
+        message: "Đã gửi lại đơn cho kỹ thuật viên",
+        data: updatedOrder,
+    });
+};
 
 export const getAvailableOrders = async (req, res) => {
-    // Ghi nhận kỹ thuật viên đang mở app (+ vị trí nếu app gửi ?lat=&lng=)
-    // để bộ ghép cặp biết ai đang trực và ở đâu
-    await markTechnicianSeen(req.user._id, req.query.lat, req.query.lng);
-
     if (req.user.isAcceptingOrders === false) {
         return res.json({ success: true, data: [] });
     }
-
-    // Việc chọn ai nhận đơn do bộ ghép cặp (services/dispatcher.js) đảm nhận.
-    // Ở đây chỉ trả về đơn đang được gửi cho CHÍNH kỹ thuật viên này và còn hạn.
-    const activeCutoff = new Date(Date.now() - OFFER_DURATION_MS);
 
     const orders = await Order.find({
         status: "PENDING",
@@ -105,34 +231,20 @@ export const getAvailableOrders = async (req, res) => {
             $elemMatch: {
                 technicianId: req.user._id,
                 response: "PENDING",
-                offeredAt: { $gt: activeCutoff },
             },
         },
     })
+        .select("-candidateTechnicians")
         .populate("customerId", "fullName phone")
         .sort({ createdAt: -1 })
         .lean();
 
-    const data = orders.map((order) => {
-        const offer = order.offers.find(
-            (item) =>
-                item.technicianId.toString() === req.user._id.toString() &&
-                item.response === "PENDING"
-        );
-
-        return {
-            ...order,
-            offerExpiresAt: new Date(
-                new Date(offer.offeredAt).getTime() + OFFER_DURATION_MS
-            ).toISOString(),
-        };
-    });
-
-    res.json({ success: true, data });
+    res.json({ success: true, data: orders });
 };
 
 export const getMyOrders = async (req, res) => {
     const orders = await Order.find({ technicianId: req.user._id })
+        .select("-candidateTechnicians")
         .populate("customerId", "fullName phone")
         .sort({ createdAt: -1 })
         .lean();
@@ -161,6 +273,7 @@ export const getOrderById = async (req, res) => {
 
     const order = await Order.findById(id)
         .populate("technicianId", "fullName phone")
+        .populate("offers.technicianId", "fullName")
         .populate("customerId", "fullName phone")
         .lean();
 
@@ -183,6 +296,8 @@ export const getOrderById = async (req, res) => {
             message: "Không tìm thấy đơn hàng",
         });
     }
+
+    if (!isCustomer) delete order.candidateTechnicians;
 
     res.json({ success: true, data: order });
 };
@@ -591,8 +706,6 @@ export const acceptOrder = async (req, res) => {
         });
     }
 
-    const cutoff = new Date(Date.now() - OFFER_DURATION_MS);
-
     const order = await Order.findOneAndUpdate(
         {
             _id: id,
@@ -602,7 +715,6 @@ export const acceptOrder = async (req, res) => {
                 $elemMatch: {
                     technicianId: req.user._id,
                     response: "PENDING",
-                    offeredAt: { $gt: cutoff },
                 },
             },
         },
@@ -620,7 +732,7 @@ export const acceptOrder = async (req, res) => {
     if (!order) {
         return res.status(409).json({
             success: false,
-            message: "Offer đã hết hạn hoặc đơn đã được kỹ thuật viên khác nhận",
+            message: "Đơn đã được kỹ thuật viên khác nhận hoặc không còn khả dụng",
         });
     }
 
@@ -642,8 +754,6 @@ export const rejectOrder = async (req, res) => {
         });
     }
 
-    const cutoff = new Date(Date.now() - OFFER_DURATION_MS);
-
     const order = await Order.findOneAndUpdate(
         {
             _id: id,
@@ -653,7 +763,6 @@ export const rejectOrder = async (req, res) => {
                 $elemMatch: {
                     technicianId: req.user._id,
                     response: "PENDING",
-                    offeredAt: { $gt: cutoff },
                 },
             },
         },
@@ -664,10 +773,9 @@ export const rejectOrder = async (req, res) => {
     if (!order) {
         return res.status(409).json({
             success: false,
-            message: "Offer đã hết hạn hoặc không còn khả dụng",
+            message: "Đơn không còn khả dụng",
         });
     }
-    await dispatchOrder(order._id).catch((error) => console.error("[Ghép cặp]", error.message));
 
     res.json({
         success: true,

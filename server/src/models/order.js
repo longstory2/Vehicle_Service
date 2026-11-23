@@ -13,6 +13,25 @@ const orderSchema = new mongoose.Schema(
             ref: "User",
             default: null,
         },
+        customerSelectedTechnician: {
+            type: Boolean,
+            default: false,
+        },
+        candidateTechnicians: [
+            {
+                _id: false,
+                technicianId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "User",
+                    required: true,
+                },
+                fullName: { type: String, required: true },
+                distanceKm: { type: Number, required: true },
+                ratingAvg: { type: Number, default: null },
+                ratingCount: { type: Number, default: 0 },
+                score: { type: Number, required: true },
+            },
+        ],
         serviceDetails: {
             category: { type: String, default: "" },
             serviceName: { type: String, default: "" },
